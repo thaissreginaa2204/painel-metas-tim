@@ -1,0 +1,1157 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Painel de Metas - TIM Grupo Lemar</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: #f5f5f5; padding: 20px; }
+        .container { max-width: 1400px; margin: 0 auto; background: white; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); overflow: hidden; }
+        
+        .tabs-header { display: flex; background: #f0f0f0; border-bottom: 3px solid #003DA5; gap: 0; overflow-x: auto; }
+        .tab-button { flex: 1; min-width: 130px; padding: 15px 20px; background: #e0e0e0; border: none; cursor: pointer; font-size: 13px; font-weight: 600; color: #333; transition: all 0.3s; white-space: nowrap; }
+        .tab-button:hover { background: #d0d0d0; }
+        .tab-button.active { background: white; color: #003DA5; border-bottom: 3px solid #003DA5; }
+        
+        #logoTIM {
+            cursor: pointer;
+            user-select: none;
+            transition: transform 0.1s;
+        }
+        
+        #logoTIM:active {
+            transform: scale(0.98);
+        }
+        
+        .tabs-content { display: none; padding: 25px; }
+        .tabs-content.active { display: block; animation: fadeIn 0.3s; }
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+        
+        .section-title { font-size: 18px; font-weight: 700; color: #003DA5; margin-bottom: 20px; border-bottom: 2px solid #003DA5; padding-bottom: 10px; }
+        
+        .metas-box { background: #f0f8ff; padding: 20px; border-radius: 4px; margin-bottom: 25px; border-left: 4px solid #003DA5; }
+        .metas-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 15px; }
+        .meta-field { display: flex; flex-direction: column; }
+        .meta-field label { font-size: 12px; font-weight: 600; color: #333; margin-bottom: 5px; }
+        .meta-field input { padding: 8px 12px; border: 1px solid #ddd; border-radius: 4px; font-size: 14px; }
+        
+        .controls { display: flex; gap: 10px; margin-bottom: 20px; align-items: center; flex-wrap: wrap; }
+        .controls select { padding: 8px 15px; border: 1px solid #ddd; border-radius: 4px; font-size: 14px; }
+        .controls label { font-weight: 600; color: #333; }
+        
+        .vendedores-container { display: flex; gap: 10px; margin-bottom: 20px; align-items: center; }
+        .vendedores-container input { flex: 1; padding: 8px 12px; border: 1px solid #ddd; border-radius: 4px; font-size: 14px; }
+        
+        .vendedores-list { display: flex; gap: 8px; margin-bottom: 20px; flex-wrap: wrap; }
+        .vendedor-tag { background: #e3f2fd; color: #003DA5; padding: 6px 12px; border-radius: 20px; font-size: 13px; display: inline-flex; align-items: center; gap: 6px; border: 1px solid #90CAF9; }
+        .vendedor-tag button { background: none; border: none; color: #003DA5; cursor: pointer; font-size: 16px; padding: 0; font-weight: bold; }
+        .vendedor-tag button:hover { color: #0d47a1; }
+        
+        .table-container { overflow-x: auto; border-radius: 4px; border: 1px solid #ddd; margin-bottom: 20px; }
+        table { width: 100%; border-collapse: collapse; }
+        thead { background: #003DA5; color: white; position: sticky; top: 0; z-index: 10; }
+        th { padding: 12px; text-align: left; font-size: 12px; font-weight: 600; white-space: nowrap; }
+        td { padding: 10px 12px; border-bottom: 1px solid #eee; font-size: 13px; }
+        tbody tr:hover { background: #f9f9f9; }
+        
+        tr.loja-header { background: #e0f7e0; font-weight: 600; }
+        tr.loja-total { background: #90EE90; font-weight: 600; }
+        
+        input[type="number"] { width: 80px; padding: 6px; border: 1px solid #ddd; border-radius: 4px; font-size: 12px; }
+        input[readonly] { background: #f5f5f5; color: #666; cursor: not-allowed; }
+        
+        .buttons-container { display: flex; gap: 10px; margin-top: 20px; flex-wrap: wrap; }
+        .btn { padding: 10px 16px; border: none; border-radius: 4px; cursor: pointer; font-size: 13px; font-weight: 600; display: inline-flex; align-items: center; gap: 8px; transition: all 0.3s; }
+        .btn-primary { background: #003DA5; color: white; }
+        .btn-primary:hover { background: #002878; }
+        .btn-success { background: #4CAF50; color: white; }
+        .btn-success:hover { background: #45a049; }
+        .btn-danger { background: #f44336; color: white; padding: 4px 8px; font-size: 11px; }
+        .btn-danger:hover { background: #da190b; }
+        
+        .lojas-carteira { margin-top: 20px; }
+        .loja-carteira-item { background: #f9f9f9; padding: 15px; margin-bottom: 15px; border-radius: 4px; border-left: 4px solid #90EE90; }
+        .loja-carteira-nome { font-weight: 700; color: #2e7d32; margin-bottom: 10px; font-size: 14px; }
+        
+        .sem-dados { color: #999; font-style: italic; font-size: 12px; padding: 10px; }
+        
+        .btn-copy { background: #2196F3; color: white; padding: 4px 8px; font-size: 11px; }
+        .btn-copy:hover { background: #1976D2; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- VERIFICAÇÃO DE ADMIN -->
+        <div id="telaLogin" style="background: #003DA5; color: white; padding: 40px; text-align: center; min-height: 100vh; display: flex; flex-direction: column; justify-content: center; align-items: center;">
+            <h1 id="logoTIM" style="font-size: 48px; margin-bottom: 30px; cursor: pointer; user-select: none;">🔐 Painel de Metas TIM</h1>
+            <p style="font-size: 16px; margin-bottom: 20px;">Sistema de Controle de Metas</p>
+            
+            <button onclick="entrarComoGerente()" class="btn" style="padding: 15px 40px; font-size: 18px; background: #4CAF50; color: white; border: none; border-radius: 4px; cursor: pointer; font-weight: 600; margin-bottom: 30px;">Inclusão de Metas</button>
+            
+            <div id="campoPin" style="display: none; margin-top: 20px;">
+                <p style="margin-bottom: 15px; font-size: 14px;">🔐 Acesso Admin:</p>
+                <input type="password" id="inputPin" placeholder="Digite o PIN" style="padding: 10px; border: none; border-radius: 4px; width: 150px; font-size: 14px; text-align: center;" onkeypress="if(event.key==='Enter') validarPin()">
+                <button onclick="validarPin()" style="padding: 10px 20px; margin-left: 10px; background: #2196F3; color: white; border: none; border-radius: 4px; cursor: pointer; font-weight: 600;">OK</button>
+            </div>
+            
+            <p style="margin-top: 40px; font-size: 12px; opacity: 0.8;">© TIM Grupo Lemar 2026</p>
+        </div>
+
+        <div id="telaPrincipal" style="display: none;">
+        <div style="background: #f0f8ff; padding: 15px; border-bottom: 2px solid #003DA5; display: flex; gap: 15px; align-items: center; flex-wrap: wrap; justify-content: space-between;">
+            <div style="display: flex; gap: 15px; align-items: center; flex-wrap: wrap;">
+                <div style="display: flex; gap: 10px; align-items: center;">
+                    <button class="btn btn-primary" onclick="mudarMes(-1)" style="padding: 8px 12px;">◀ Anterior</button>
+                    <div style="font-weight: 700; font-size: 16px; color: #003DA5; min-width: 180px; text-align: center;">
+                        <span id="mesAnoDisplay">Setembro 2026</span>
+                    </div>
+                    <button class="btn btn-primary" onclick="mudarMes(1)" style="padding: 8px 12px;">Próximo ▶</button>
+                </div>
+                
+                <div style="display: flex; gap: 10px; align-items: center;">
+                    <label style="font-weight: 600; color: #333;">📅 Mês:</label>
+                    <select id="seletorMes" onchange="selecionarMesAno()" style="padding: 8px 12px; border: 1px solid #ddd; border-radius: 4px; font-size: 14px; font-weight: 600;">
+                        <option value="0">Janeiro</option>
+                        <option value="1">Fevereiro</option>
+                        <option value="2">Março</option>
+                        <option value="3">Abril</option>
+                        <option value="4">Maio</option>
+                        <option value="5">Junho</option>
+                        <option value="6">Julho</option>
+                        <option value="7">Agosto</option>
+                        <option value="8" selected>Setembro</option>
+                        <option value="9">Outubro</option>
+                        <option value="10">Novembro</option>
+                        <option value="11">Dezembro</option>
+                    </select>
+                    
+                    <label style="font-weight: 600; color: #333;">📆 Ano:</label>
+                    <select id="seletorAno" onchange="selecionarMesAno()" style="padding: 8px 12px; border: 1px solid #ddd; border-radius: 4px; font-size: 14px; font-weight: 600;">
+                        <!-- Preenchido via JavaScript -->
+                    </select>
+                </div>
+            </div>
+            
+            <div style="display: flex; gap: 10px; align-items: center;">
+                <button class="btn btn-primary" id="btnExportarPDF" onclick="exportarPDF()" style="padding: 8px 12px; background: #2196F3; color: white; font-weight: 600;">📄 Exportar PDF</button>
+                <button class="btn btn-primary" onclick="trocarUsuario()" style="padding: 8px 12px; background: #666; color: white; font-weight: 600;">🔄 Trocar</button>
+            </div>
+        </div>
+
+        <div class="tabs-header">
+            <button class="tab-button active" onclick="mudarAba('carteira_01')">🗂️ CARTEIRA 01</button>
+            <button class="tab-button" onclick="mudarAba('carteira_02')">🗂️ CARTEIRA 02</button>
+            <button class="tab-button" onclick="mudarAba('carteira_03')">🗂️ CARTEIRA 03</button>
+            <button class="tab-button" onclick="mudarAba('lojas')">📍 LOJAS</button>
+            <button class="tab-button" onclick="mudarAba('franquia')">🏢 FRANQUIA</button>
+        </div>
+
+        <!-- CARTEIRA 01 -->
+        <div class="tabs-content active" id="aba-carteira_01">
+            <h2 class="section-title">🗂️ CARTEIRA 01 - Metas</h2>
+            
+            <div class="metas-box">
+                <div style="font-weight: 600; margin-bottom: 15px; display: flex; gap: 10px; align-items: center;">
+                    Preencha as metas da Carteira 01:
+                    <button onclick="ocultarSecao('wrapper-cart01', 'resumo-carteira_01', 'btnVerResumo-cart01')" style="padding: 6px 14px; background: #2e7d32; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 13px; font-weight: 600;">✓ Incluir Metas</button>
+                </div>
+                <div class="metas-grid" id="wrapper-cart01">
+                    <div class="meta-field"><label>Aparelho (R$)</label><input type="number" id="cart01-aparelho" step="0.01" onchange="salvarCarteira('carteira_01')"></div>
+                    <div class="meta-field"><label>Acessórios (R$)</label><input type="number" id="cart01-acessorios" step="0.01" onchange="salvarCarteira('carteira_01')"></div>
+                    <div class="meta-field"><label>Pitzi (Qtd)</label><input type="number" id="cart01-pitzi" onchange="salvarCarteira('carteira_01')"></div>
+                    <div class="meta-field"><label>Faturamento (R$)</label><input type="number" id="cart01-faturamento" step="0.01" onchange="salvarCarteira('carteira_01')"></div>
+                    <div class="meta-field"><label>Upgrade (R$)</label><input type="number" id="cart01-upgrade" step="0.01" onchange="salvarCarteira('carteira_01')"></div>
+                    <div class="meta-field"><label>Pós (Qtd)</label><input type="number" id="cart01-pos" onchange="salvarCarteira('carteira_01')"></div>
+                    <div class="meta-field"><label>Controle (Qtd)</label><input type="number" id="cart01-controle" onchange="salvarCarteira('carteira_01')"></div>
+                    <div class="meta-field"><label>Fibra (Qtd)</label><input type="number" id="cart01-fibra" onchange="salvarCarteira('carteira_01')"></div>
+                    <div class="meta-field"><label>Portabilidade (Qtd)</label><input type="number" id="cart01-portabilidade" onchange="salvarCarteira('carteira_01')"></div>
+                </div>
+            </div>
+            
+            <h3 style="margin-top: 25px; margin-bottom: 15px; font-size: 14px; font-weight: 600; color: #2e7d32; display: flex; gap: 10px; align-items: center;">
+                📊 METAS DEFINIDAS DA CARTEIRA 01:
+                <button id="btnVerResumo-cart01" onclick="mostrarSecao('wrapper-cart01', 'resumo-carteira_01', 'btnVerResumo-cart01')" style="padding: 4px 12px; background: #2e7d32; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 12px; font-weight: 600; display: none;">✏️ Editar Metas</button>
+                <button onclick="bloquearCarteira(1)" style="padding: 6px 12px; background: #4CAF50; color: white; border: none; border-radius: 4px; cursor: pointer; font-weight: 600; font-size: 12px;">✓ Confirmar Metas</button>
+            </h3>
+            <div id="resumo-carteira_01" style="background: #e8f5e9; padding: 15px; border-radius: 4px; border-left: 4px solid #4CAF50; margin-bottom: 25px; display: grid; grid-template-columns: repeat(auto-fit, minmax(110px, 1fr)); gap: 12px;"></div>
+            
+            <h3 style="margin-top: 25px; margin-bottom: 15px; font-size: 14px; font-weight: 600; color: #2e7d32;">📍 LOJAS DESTA CARTEIRA:</h3>
+            <div id="lojas-carteira_01" class="lojas-carteira"></div>
+        </div>
+
+        <!-- CARTEIRA 02 -->
+        <div class="tabs-content" id="aba-carteira_02">
+            <h2 class="section-title">🗂️ CARTEIRA 02 - Metas</h2>
+            
+            <div class="metas-box">
+                <div style="font-weight: 600; margin-bottom: 15px; display: flex; gap: 10px; align-items: center;">
+                    Preencha as metas da Carteira 02:
+                    <button onclick="ocultarSecao('wrapper-cart02', 'resumo-carteira_02', 'btnVerResumo-cart02')" style="padding: 6px 14px; background: #2e7d32; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 13px; font-weight: 600;">✓ Incluir Metas</button>
+                </div>
+                <div class="metas-grid" id="wrapper-cart02">
+                    <div class="meta-field"><label>Aparelho (R$)</label><input type="number" id="cart02-aparelho" step="0.01" onchange="salvarCarteira('carteira_02')"></div>
+                    <div class="meta-field"><label>Acessórios (R$)</label><input type="number" id="cart02-acessorios" step="0.01" onchange="salvarCarteira('carteira_02')"></div>
+                    <div class="meta-field"><label>Pitzi (Qtd)</label><input type="number" id="cart02-pitzi" onchange="salvarCarteira('carteira_02')"></div>
+                    <div class="meta-field"><label>Faturamento (R$)</label><input type="number" id="cart02-faturamento" step="0.01" onchange="salvarCarteira('carteira_02')"></div>
+                    <div class="meta-field"><label>Upgrade (R$)</label><input type="number" id="cart02-upgrade" step="0.01" onchange="salvarCarteira('carteira_02')"></div>
+                    <div class="meta-field"><label>Pós (Qtd)</label><input type="number" id="cart02-pos" onchange="salvarCarteira('carteira_02')"></div>
+                    <div class="meta-field"><label>Controle (Qtd)</label><input type="number" id="cart02-controle" onchange="salvarCarteira('carteira_02')"></div>
+                    <div class="meta-field"><label>Fibra (Qtd)</label><input type="number" id="cart02-fibra" onchange="salvarCarteira('carteira_02')"></div>
+                    <div class="meta-field"><label>Portabilidade (Qtd)</label><input type="number" id="cart02-portabilidade" onchange="salvarCarteira('carteira_02')"></div>
+                </div>
+            </div>
+            
+            <h3 style="margin-top: 25px; margin-bottom: 15px; font-size: 14px; font-weight: 600; color: #2e7d32; display: flex; gap: 10px; align-items: center;">
+                📊 METAS DEFINIDAS DA CARTEIRA 02:
+                <button id="btnVerResumo-cart02" onclick="mostrarSecao('wrapper-cart02', 'resumo-carteira_02', 'btnVerResumo-cart02')" style="padding: 4px 12px; background: #2e7d32; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 12px; font-weight: 600; display: none;">✏️ Editar Metas</button>
+                <button onclick="bloquearCarteira(2)" style="padding: 6px 12px; background: #4CAF50; color: white; border: none; border-radius: 4px; cursor: pointer; font-weight: 600; font-size: 12px;">✓ Confirmar Metas</button>
+            </h3>
+            <div id="resumo-carteira_02" style="background: #e8f5e9; padding: 15px; border-radius: 4px; border-left: 4px solid #4CAF50; margin-bottom: 25px; display: grid; grid-template-columns: repeat(auto-fit, minmax(110px, 1fr)); gap: 12px;"></div>
+            
+            <h3 style="margin-top: 25px; margin-bottom: 15px; font-size: 14px; font-weight: 600; color: #2e7d32;">📍 LOJAS DESTA CARTEIRA:</h3>
+            <div id="lojas-carteira_02" class="lojas-carteira"></div>
+        </div>
+
+        <!-- CARTEIRA 03 -->
+        <div class="tabs-content" id="aba-carteira_03">
+            <h2 class="section-title">🗂️ CARTEIRA 03 - Metas</h2>
+            
+            <div class="metas-box">
+                <div style="font-weight: 600; margin-bottom: 15px; display: flex; gap: 10px; align-items: center;">
+                    Preencha as metas da Carteira 03:
+                    <button onclick="ocultarSecao('wrapper-cart03', 'resumo-carteira_03', 'btnVerResumo-cart03')" style="padding: 6px 14px; background: #2e7d32; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 13px; font-weight: 600;">✓ Incluir Metas</button>
+                </div>
+                <div class="metas-grid" id="wrapper-cart03">
+                    <div class="meta-field"><label>Aparelho (R$)</label><input type="number" id="cart03-aparelho" step="0.01" onchange="salvarCarteira('carteira_03')"></div>
+                    <div class="meta-field"><label>Acessórios (R$)</label><input type="number" id="cart03-acessorios" step="0.01" onchange="salvarCarteira('carteira_03')"></div>
+                    <div class="meta-field"><label>Pitzi (Qtd)</label><input type="number" id="cart03-pitzi" onchange="salvarCarteira('carteira_03')"></div>
+                    <div class="meta-field"><label>Faturamento (R$)</label><input type="number" id="cart03-faturamento" step="0.01" onchange="salvarCarteira('carteira_03')"></div>
+                    <div class="meta-field"><label>Upgrade (R$)</label><input type="number" id="cart03-upgrade" step="0.01" onchange="salvarCarteira('carteira_03')"></div>
+                    <div class="meta-field"><label>Pós (Qtd)</label><input type="number" id="cart03-pos" onchange="salvarCarteira('carteira_03')"></div>
+                    <div class="meta-field"><label>Controle (Qtd)</label><input type="number" id="cart03-controle" onchange="salvarCarteira('carteira_03')"></div>
+                    <div class="meta-field"><label>Fibra (Qtd)</label><input type="number" id="cart03-fibra" onchange="salvarCarteira('carteira_03')"></div>
+                    <div class="meta-field"><label>Portabilidade (Qtd)</label><input type="number" id="cart03-portabilidade" onchange="salvarCarteira('carteira_03')"></div>
+                </div>
+            </div>
+            
+            <h3 style="margin-top: 25px; margin-bottom: 15px; font-size: 14px; font-weight: 600; color: #2e7d32; display: flex; gap: 10px; align-items: center;">
+                📊 METAS DEFINIDAS DA CARTEIRA 03:
+                <button id="btnVerResumo-cart03" onclick="mostrarSecao('wrapper-cart03', 'resumo-carteira_03', 'btnVerResumo-cart03')" style="padding: 4px 12px; background: #2e7d32; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 12px; font-weight: 600; display: none;">✏️ Editar Metas</button>
+                <button onclick="bloquearCarteira(3)" style="padding: 6px 12px; background: #4CAF50; color: white; border: none; border-radius: 4px; cursor: pointer; font-weight: 600; font-size: 12px;">✓ Confirmar Metas</button>
+            </h3>
+            <div id="resumo-carteira_03" style="background: #e8f5e9; padding: 15px; border-radius: 4px; border-left: 4px solid #4CAF50; margin-bottom: 25px; display: grid; grid-template-columns: repeat(auto-fit, minmax(110px, 1fr)); gap: 12px;"></div>
+            
+            <h3 style="margin-top: 25px; margin-bottom: 15px; font-size: 14px; font-weight: 600; color: #2e7d32;">📍 LOJAS DESTA CARTEIRA:</h3>
+            <div id="lojas-carteira_03" class="lojas-carteira"></div>
+        </div>
+
+        <!-- LOJAS -->
+        <div class="tabs-content" id="aba-lojas">
+            <h2 class="section-title">📍 Metas por Loja</h2>
+            <div class="controls">
+                <label>📍 Selecione a Loja:</label>
+                <select id="selectorLoja" onchange="mudarLoja()">
+                    <option value="">-- Selecione --</option>
+                    <option value="loja_01">01 - SHOPPING</option>
+                    <option value="loja_02">02 - XV DE NOVEMBRO</option>
+                    <option value="loja_03">03 - SALDANHA</option>
+                    <option value="loja_04">04 - ARAPONGAS 01</option>
+                    <option value="loja_05">05 - ARAPONGAS 02</option>
+                    <option value="loja_06">06 - MARIALVA</option>
+                    <option value="loja_07">07 - LONDRINA</option>
+                    <option value="loja_08">08 - APUCARANA 01</option>
+                    <option value="loja_09">09 - APUCARANA 02</option>
+                    <option value="loja_10">10 - ROLÂNDIA</option>
+                    <option value="loja_11">11 - CAMBÉ</option>
+                    <option value="loja_12">12 - MANDAGUARI</option>
+                    <option value="loja_13">13 - CAMPO MOURÃO</option>
+                    <option value="loja_14">14 - ASSIS CHATEAUBRIAND</option>
+                    <option value="loja_15">15 - UBIRATÃ</option>
+                    <option value="loja_16">16 - IVAIPORÃ</option>
+                    <option value="loja_17">17 - GOIOERÊ</option>
+                    <option value="loja_18">18 - TOLEDO 01</option>
+                    <option value="loja_19">19 - TOLEDO 02</option>
+                    <option value="loja_20">20 - MARECHAL C. RONDON</option>
+                    <option value="loja_21">21 - CASCAVEL 01</option>
+                    <option value="loja_22">22 - CASCAVEL 02</option>
+                </select>
+            </div>
+            <div id="lojaContent"></div>
+        </div>
+
+        <!-- FRANQUIA -->
+        <div class="tabs-content" id="aba-franquia">
+            <h2 class="section-title">🏢 FRANQUIA - Metas</h2>
+            
+            <div style="margin-bottom: 15px;">
+                <button onclick="ocultarSecao('wrapper-franquia', 'resumo-franquia', 'btnVerResumo-franquia')" style="padding: 6px 14px; background: #2e7d32; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 13px; font-weight: 600;">✓ Incluir Metas</button>
+            </div>
+            
+            <div id="wrapper-franquia" class="table-container">
+                <table>
+                    <thead><tr>
+                        <th>FRANQUIA</th><th>Aparelho (R$)</th><th>Acessórios (R$)</th><th>Pitzi</th>
+                        <th>Faturamento</th><th>Upgrade</th><th>Pós</th><th>Controle</th><th>Fibra</th><th>Portabilidade</th>
+                    </tr></thead>
+                    <tbody><tr>
+                        <td><strong>FRANQUIA</strong></td>
+                        <td><input type="number" id="franquia-aparelho" step="0.01" onchange="salvarFranquia()"></td>
+                        <td><input type="number" id="franquia-acessorios" step="0.01" onchange="salvarFranquia()"></td>
+                        <td><input type="number" id="franquia-pitzi" onchange="salvarFranquia()"></td>
+                        <td><input type="number" id="franquia-faturamento" step="0.01" onchange="salvarFranquia()"></td>
+                        <td><input type="number" id="franquia-upgrade" step="0.01" onchange="salvarFranquia()"></td>
+                        <td><input type="number" id="franquia-pos" onchange="salvarFranquia()"></td>
+                        <td><input type="number" id="franquia-controle" onchange="salvarFranquia()"></td>
+                        <td><input type="number" id="franquia-fibra" onchange="salvarFranquia()"></td>
+                        <td><input type="number" id="franquia-portabilidade" onchange="salvarFranquia()"></td>
+                    </tr></tbody>
+                </table>
+            </div>
+            
+            <h3 style="margin-top: 25px; margin-bottom: 15px; font-size: 14px; font-weight: 600; color: #2e7d32; display: flex; gap: 10px; align-items: center;">
+                📊 METAS DEFINIDAS DA FRANQUIA:
+                <button id="btnVerResumo-franquia" onclick="mostrarSecao('wrapper-franquia', 'resumo-franquia', 'btnVerResumo-franquia')" style="padding: 4px 12px; background: #2e7d32; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 12px; font-weight: 600; display: none;">✏️ Editar Metas</button>
+                <button onclick="bloquearFranquia()" style="padding: 6px 12px; background: #4CAF50; color: white; border: none; border-radius: 4px; cursor: pointer; font-weight: 600; font-size: 12px;">✓ Confirmar Metas</button>
+            </h3>
+            <div id="resumo-franquia" style="background: #e8f5e9; padding: 15px; border-radius: 4px; border-left: 4px solid #4CAF50; display: grid; grid-template-columns: repeat(auto-fit, minmax(110px, 1fr)); gap: 12px;"></div>
+        </div>
+    </div>
+    </div>
+
+    <script>
+        // ===== SISTEMA DE PIN SECRETO =====
+        let cliqueNoLogo = 0;
+        const PIN_CORRETO = '1234'; // Você pode mudar isso
+        
+        document.addEventListener('DOMContentLoaded', () => {
+            const logo = document.getElementById('logoTIM');
+            if (logo) {
+                logo.addEventListener('click', () => {
+                    cliqueNoLogo++;
+                    
+                    if (cliqueNoLogo === 3) {
+                        // Mostrar campo de PIN
+                        document.getElementById('campoPin').style.display = 'block';
+                        document.getElementById('inputPin').focus();
+                        cliqueNoLogo = 0; // Reset
+                    }
+                });
+            }
+        });
+        
+        function validarPin() {
+            const pin = document.getElementById('inputPin').value;
+            
+            if (pin === PIN_CORRETO) {
+                usuarioAdmin = true;
+                localStorage.setItem('usuarioAdmin', 'true');
+                exibirPainelPrincipal();
+            } else {
+                alert('❌ PIN incorreto!');
+                document.getElementById('inputPin').value = '';
+                document.getElementById('inputPin').focus();
+            }
+        }
+        
+        // ===== CONTROLE DE ACESSO =====
+        let usuarioAdmin = false; // false = GERENTE, true = ADMIN (você)
+        
+        function trocarUsuario() {
+            localStorage.removeItem('usuarioAdmin');
+            location.reload();
+        }
+        
+        function entrarComoGerente() {
+            usuarioAdmin = false;
+            localStorage.setItem('usuarioAdmin', 'false');
+            exibirPainelPrincipal();
+        }
+        
+        function exibirPainelPrincipal() {
+            document.getElementById('telaLogin').style.display = 'none';
+            document.getElementById('telaPrincipal').style.display = 'block';
+            
+            // Aplicar bloqueios (se estiverem bloqueados)
+            setTimeout(() => {
+                aplicarBloqueioCarteira(1);
+                aplicarBloqueioCarteira(2);
+                aplicarBloqueioCarteira(3);
+                aplicarBloqueioFranquia();
+            }, 100);
+        }
+        
+        function verificarNivelAcesso() {
+            const salvo = localStorage.getItem('usuarioAdmin');
+            if (salvo === 'true') usuarioAdmin = true;
+            else if (salvo === 'false') usuarioAdmin = false;
+            else return false; // Sem acesso - mostrar login
+            return true;
+        }
+        
+        // ===== CONTROLE DE MÊS/ANO =====
+        let mesAtual = new Date().getMonth(); // 0-11
+        let anoAtual = new Date().getFullYear();
+        let mesBloqueado = false; // Controla se mês está bloqueado
+        
+        const meses = ['Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho',
+                       'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'];
+        
+        function atualizarMesAnoDisplay() {
+            document.getElementById('mesAnoDisplay').textContent = `${meses[mesAtual]} ${anoAtual}`;
+        }
+        
+        function mudarMes(direcao) {
+            let novoMes = mesAtual + direcao;
+            let novoAno = anoAtual;
+            
+            if (novoMes < 0) { 
+                novoMes += 12; 
+                novoAno--; 
+            }
+            if (novoMes > 11) { 
+                novoMes -= 12; 
+                novoAno++; 
+            }
+            
+            // Proteção: não deixar ir antes de Setembro 2026
+            if (novoAno < 2026 || (novoAno === 2026 && novoMes < 8)) {
+                alert('⚠️ Histórico começa em Setembro 2026!');
+                return;
+            }
+            
+            mesAtual = novoMes;
+            anoAtual = novoAno;
+            
+            // Se o ano mudou, adicionar ao dropdown
+            const selectAno = document.getElementById('seletorAno');
+            if (selectAno && !Array.from(selectAno.options).some(opt => opt.value == anoAtual)) {
+                const option = document.createElement('option');
+                option.value = anoAtual;
+                option.textContent = anoAtual;
+                selectAno.appendChild(option);
+            }
+            
+            // Sincronizar dropdowns com valores atuais
+            const selectMes = document.getElementById('seletorMes');
+            if (selectMes) selectMes.value = mesAtual;
+            if (selectAno) selectAno.value = anoAtual;
+            
+            atualizarMesAnoDisplay();
+            recarregarDados();
+        }
+        
+        function selecionarMesAno() {
+            const mes = document.getElementById('seletorMes');
+            const ano = document.getElementById('seletorAno');
+            
+            if (mes && ano) {
+                const novoMes = parseInt(mes.value);
+                const novoAno = parseInt(ano.value);
+                
+                // Proteção: não deixar ir antes de Setembro 2026
+                if (novoAno < 2026 || (novoAno === 2026 && novoMes < 8)) {
+                    alert('⚠️ Histórico começa em Setembro 2026!');
+                    // Restaurar valor anterior
+                    mes.value = mesAtual;
+                    ano.value = anoAtual;
+                    return;
+                }
+                
+                mesAtual = novoMes;
+                anoAtual = novoAno;
+                atualizarMesAnoDisplay();
+                recarregarDados();
+            }
+        }
+        
+        function preencherSeletorAno() {
+            const selectAno = document.getElementById('seletorAno');
+            selectAno.innerHTML = '';
+            
+            // 2026 até 2040 (15 anos de histórico/planejamento)
+            for (let a = 2026; a <= 2040; a++) {
+                const option = document.createElement('option');
+                option.value = a;
+                option.textContent = a;
+                if (a === anoAtual) option.selected = true;
+                selectAno.appendChild(option);
+            }
+        }
+        
+        function getChaveComMes(tipo) {
+            return `${tipo}_${mesAtual}_${anoAtual}`;
+        }
+        
+        
+        function getChaveBloqueioLoja(lojaId) {
+            return 'bloqueio_loja_' + lojaId + '_' + mesAtual + '_' + anoAtual;
+        }
+        
+        function bloquearLoja(lojaId) {
+            const lojaNome = document.querySelector('select[onchange="mudarLoja()"]').value;
+            
+            if (!usuarioAdmin) {
+                // GERENTE clica "Confirmar Metas da Loja"
+                const confirma = confirm(`✓ Confirmar os dados de "${lojaNome}"?\n\nAo confirmar, esta loja será BLOQUEADA.\nApenas o ADMIN consegue desbloquear.`);
+                if (!confirma) return;
+            }
+            
+            const chave = getChaveBloqueioLoja(lojaId);
+            localStorage.setItem(chave, 'true');
+            
+            if (usuarioAdmin) {
+                alert(`✅ Loja "${lojaNome}" BLOQUEADA!\n\nGerente não consegue editar.\nVocê continua com acesso.`);
+            } else {
+                alert(`✅ Metas de "${lojaNome}" CONFIRMADAS E BLOQUEADAS!\n\nAguardando aprovação do ADMIN para desbloquear.`);
+            }
+            
+            renderizarLoja(lojaId);
+        }
+        
+        function desbloquearLoja(lojaId) {
+            // Só ADMIN consegue desbloquear
+            if (!usuarioAdmin) {
+                alert('❌ Apenas o ADMIN consegue desbloquear!');
+                return;
+            }
+            
+            const lojaNome = document.querySelector('select[onchange="mudarLoja()"]').value;
+            const confirma = confirm(`🔓 Desbloquear a loja "${lojaNome}" para edição?\n\nO gerente conseguirá editar novamente.`);
+            if (!confirma) return;
+            
+            const chave = getChaveBloqueioLoja(lojaId);
+            localStorage.removeItem(chave);
+            alert(`🔓 Loja "${lojaNome}" DESBLOQUEADA!\n\nGerente consegue editar novamente.`);
+            
+            renderizarLoja(lojaId);
+        }
+        
+        function verificarBloqueioLoja(lojaId) {
+            const chave = getChaveBloqueioLoja(lojaId);
+            return localStorage.getItem(chave) === 'true';
+        }
+        
+        // ========== FUNÇÕES DE BLOQUEIO PARA CARTEIRA ==========
+        function getChaveBloqueioCarteira(carteiraNum) {
+            return 'bloqueio_carteira_' + carteiraNum + '_' + mesAtual + '_' + anoAtual;
+        }
+        
+        function bloquearCarteira(carteiraNum) {
+            const carteiraNome = 'CARTEIRA 0' + carteiraNum;
+            
+            if (!usuarioAdmin) {
+                const confirma = confirm(`✓ Confirmar os dados de "${carteiraNome}"?\n\nAo confirmar, esta carteira será BLOQUEADA.\nApenas o ADMIN consegue desbloquear.`);
+                if (!confirma) return;
+            }
+            
+            const chave = getChaveBloqueioCarteira(carteiraNum);
+            localStorage.setItem(chave, 'true');
+            
+            if (usuarioAdmin) {
+                alert(`✅ ${carteiraNome} BLOQUEADA!\n\nGerente não consegue editar.\nVocê continua com acesso.`);
+            } else {
+                alert(`✅ Metas de ${carteiraNome} CONFIRMADAS E BLOQUEADAS!\n\nAguardando aprovação do ADMIN para desbloquear.`);
+            }
+            
+            aplicarBloqueioCarteira(carteiraNum);
+        }
+        
+        function desbloquearCarteira(carteiraNum) {
+            if (!usuarioAdmin) {
+                alert('❌ Apenas o ADMIN consegue desbloquear!');
+                return;
+            }
+            
+            const carteiraNome = 'CARTEIRA 0' + carteiraNum;
+            const confirma = confirm(`🔓 Desbloquear ${carteiraNome} para edição?\n\nO gerente conseguirá editar novamente.`);
+            if (!confirma) return;
+            
+            const chave = getChaveBloqueioCarteira(carteiraNum);
+            localStorage.removeItem(chave);
+            alert(`🔓 ${carteiraNome} DESBLOQUEADA!\n\nGerente consegue editar novamente.`);
+            
+            aplicarBloqueioCarteira(carteiraNum);
+        }
+        
+        function verificarBloqueioCarteira(carteiraNum) {
+            const chave = getChaveBloqueioCarteira(carteiraNum);
+            return localStorage.getItem(chave) === 'true';
+        }
+        
+        function aplicarBloqueioCarteira(carteiraNum) {
+            const carteiraId = 'aba-carteira_0' + carteiraNum;
+            const wrapper = document.getElementById('wrapper-cart0' + carteiraNum);
+            const bloqueado = verificarBloqueioCarteira(carteiraNum);
+            
+            if (!wrapper) return;
+            
+            const inputs = wrapper.querySelectorAll('input');
+            const btnConfirmar = wrapper.previousElementSibling?.querySelector('button');
+            
+            if (bloqueado) {
+                inputs.forEach(input => input.disabled = true);
+                if (btnConfirmar) {
+                    btnConfirmar.style.display = 'none';
+                    // Mostrar botão desbloquear
+                    let btnDesbloquear = wrapper.querySelector('.btn-desbloquear-carteira-' + carteiraNum);
+                    if (!btnDesbloquear) {
+                        btnDesbloquear = document.createElement('button');
+                        btnDesbloquear.className = 'btn-desbloquear-carteira-' + carteiraNum;
+                        btnDesbloquear.textContent = '🔓 Desbloquear';
+                        btnDesbloquear.onclick = () => desbloquearCarteira(carteiraNum);
+                        btnDesbloquear.style.cssText = 'padding: 6px 12px; background: #FF9800; color: white; border: none; border-radius: 4px; cursor: pointer; font-weight: 600; margin-left: 10px;';
+                        if (btnConfirmar.parentElement) {
+                            btnConfirmar.parentElement.appendChild(btnDesbloquear);
+                        }
+                    }
+                    btnDesbloquear.style.display = usuarioAdmin ? 'inline-block' : 'none';
+                }
+                wrapper.style.opacity = '0.6';
+                wrapper.style.pointerEvents = 'none';
+            } else {
+                inputs.forEach(input => input.disabled = false);
+                if (btnConfirmar) btnConfirmar.style.display = 'inline-block';
+                wrapper.style.opacity = '1';
+                wrapper.style.pointerEvents = 'auto';
+                let btnDesbloquear = wrapper.querySelector('.btn-desbloquear-carteira-' + carteiraNum);
+                if (btnDesbloquear) btnDesbloquear.style.display = 'none';
+            }
+        }
+        
+        // ========== FUNÇÕES DE BLOQUEIO PARA FRANQUIA ==========
+        function getChaveBloqueioFranquia() {
+            return 'bloqueio_franquia_' + mesAtual + '_' + anoAtual;
+        }
+        
+        function bloquearFranquia() {
+            const franquiaNome = 'FRANQUIA';
+            
+            if (!usuarioAdmin) {
+                const confirma = confirm(`✓ Confirmar os dados de "${franquiaNome}"?\n\nAo confirmar, será BLOQUEADA.\nApenas o ADMIN consegue desbloquear.`);
+                if (!confirma) return;
+            }
+            
+            const chave = getChaveBloqueioFranquia();
+            localStorage.setItem(chave, 'true');
+            
+            if (usuarioAdmin) {
+                alert(`✅ ${franquiaNome} BLOQUEADA!\n\nGerente não consegue editar.\nVocê continua com acesso.`);
+            } else {
+                alert(`✅ Metas da ${franquiaNome} CONFIRMADAS E BLOQUEADAS!\n\nAguardando aprovação do ADMIN para desbloquear.`);
+            }
+            
+            aplicarBloqueioFranquia();
+        }
+        
+        function desbloquearFranquia() {
+            if (!usuarioAdmin) {
+                alert('❌ Apenas o ADMIN consegue desbloquear!');
+                return;
+            }
+            
+            const franquiaNome = 'FRANQUIA';
+            const confirma = confirm(`🔓 Desbloquear a ${franquiaNome} para edição?\n\nO gerente conseguirá editar novamente.`);
+            if (!confirma) return;
+            
+            const chave = getChaveBloqueioFranquia();
+            localStorage.removeItem(chave);
+            alert(`🔓 ${franquiaNome} DESBLOQUEADA!\n\nGerente consegue editar novamente.`);
+            
+            aplicarBloqueioFranquia();
+        }
+        
+        function verificarBloqueioFranquia() {
+            const chave = getChaveBloqueioFranquia();
+            return localStorage.getItem(chave) === 'true';
+        }
+        
+        function aplicarBloqueioFranquia() {
+            const wrapper = document.getElementById('wrapper-franquia');
+            const bloqueado = verificarBloqueioFranquia();
+            
+            if (!wrapper) return;
+            
+            const inputs = wrapper.querySelectorAll('input');
+            const section = wrapper.closest('.tabs-content');
+            const btnConfirmar = section?.querySelector('button[onclick*="bloquearFranquia"]');
+            
+            if (bloqueado) {
+                inputs.forEach(input => input.disabled = true);
+                if (btnConfirmar) {
+                    btnConfirmar.style.display = 'none';
+                    let btnDesbloquear = section?.querySelector('.btn-desbloquear-franquia');
+                    if (!btnDesbloquear) {
+                        btnDesbloquear = document.createElement('button');
+                        btnDesbloquear.className = 'btn-desbloquear-franquia';
+                        btnDesbloquear.textContent = '🔓 Desbloquear';
+                        btnDesbloquear.onclick = desbloquearFranquia;
+                        btnDesbloquear.style.cssText = 'padding: 6px 12px; background: #FF9800; color: white; border: none; border-radius: 4px; cursor: pointer; font-weight: 600; margin-left: 10px;';
+                        btnConfirmar?.parentElement?.appendChild(btnDesbloquear);
+                    }
+                    btnDesbloquear.style.display = usuarioAdmin ? 'inline-block' : 'none';
+                }
+                wrapper.style.opacity = '0.6';
+                wrapper.style.pointerEvents = 'none';
+            } else {
+                inputs.forEach(input => input.disabled = false);
+                if (btnConfirmar) btnConfirmar.style.display = 'inline-block';
+                wrapper.style.opacity = '1';
+                wrapper.style.pointerEvents = 'auto';
+                let btnDesbloquear = section?.querySelector('.btn-desbloquear-franquia');
+                if (btnDesbloquear) btnDesbloquear.style.display = 'none';
+            }
+        }
+        
+        function exportarPDF() {
+            const elemento = document.querySelector('.container');
+            const opt = {
+                margin: 10,
+                filename: `Metas_TIM_${meses[mesAtual]}_${anoAtual}.pdf`,
+                image: { type: 'jpeg', quality: 0.98 },
+                html2canvas: { scale: 2 },
+                jsPDF: { orientation: 'portrait', unit: 'mm', format: 'a4' }
+            };
+            html2pdf().set(opt).from(elemento).save();
+        }
+        
+        function recarregarDados() {
+            const campos = ['aparelho', 'acessorios', 'pitzi', 'faturamento', 'upgrade', 'pos', 'controle', 'fibra', 'portabilidade'];
+            
+            // Restaurar CARTEIRAS
+            ['carteira_01', 'carteira_02', 'carteira_03'].forEach(cart => {
+                const num = cart.split('_')[1];
+                const chave = getChaveComMes('metas_' + cart);
+                const dados = JSON.parse(localStorage.getItem(chave) || '{}');
+                campos.forEach(c => {
+                    const input = document.getElementById('cart' + num + '-' + c);
+                    if (input) input.value = dados[c] || '';
+                });
+                renderizarCarteira(cart);
+                renderizarResumoCarteira(cart);
+            });
+            
+            // Restaurar FRANQUIA
+            const chaveFranquia = getChaveComMes('metas_franquia');
+            const franquiaData = JSON.parse(localStorage.getItem(chaveFranquia) || '{}');
+            campos.forEach(c => {
+                const input = document.getElementById('franquia-' + c);
+                if (input) input.value = franquiaData[c] || '';
+            });
+            renderizarResumoFranquia();
+            
+            // Aplicar bloqueios (se estiverem bloqueados)
+            setTimeout(() => {
+                aplicarBloqueioCarteira(1);
+                aplicarBloqueioCarteira(2);
+                aplicarBloqueioCarteira(3);
+                aplicarBloqueioFranquia();
+            }, 100);
+        }
+        
+        // ===== FUNÇÕES ORIGINAIS (MODIFICADAS) =====
+        const carteiraLojas = {
+            'carteira_01': [
+                {id: 8, nome: '08 - APUCARANA 01'}, {id: 9, nome: '09 - APUCARANA 02'},
+                {id: 4, nome: '04 - ARAPONGAS 01'}, {id: 5, nome: '05 - ARAPONGAS 02'},
+                {id: 11, nome: '11 - CAMBÉ'}, {id: 7, nome: '07 - LONDRINA'}, {id: 10, nome: '10 - ROLÂNDIA'}
+            ],
+            'carteira_02': [
+                {id: 14, nome: '14 - ASSIS CHATEAUBRIAND'}, {id: 21, nome: '21 - CASCAVEL 01'},
+                {id: 22, nome: '22 - CASCAVEL 02'}, {id: 20, nome: '20 - MARECHAL C. RONDON'},
+                {id: 18, nome: '18 - TOLEDO 01'}, {id: 19, nome: '19 - TOLEDO 02'}, {id: 15, nome: '15 - UBIRATÃ'}
+            ],
+            'carteira_03': [
+                {id: 1, nome: '01 - SHOPPING'}, {id: 2, nome: '02 - XV DE NOVEMBRO'},
+                {id: 3, nome: '03 - SALDANHA'}, {id: 13, nome: '13 - CAMPO MOURÃO'},
+                {id: 17, nome: '17 - GOIOERÊ'}, {id: 16, nome: '16 - IVAIPORÃ'},
+                {id: 12, nome: '12 - MANDAGUARI'}, {id: 6, nome: '06 - MARIALVA'}
+            ]
+        };
+
+        function mudarAba(aba) {
+            document.querySelectorAll('.tabs-content').forEach(el => el.classList.remove('active'));
+            document.querySelectorAll('.tab-button').forEach(el => el.classList.remove('active'));
+            document.getElementById('aba-' + aba).classList.add('active');
+            event.target.classList.add('active');
+            
+            if (aba.startsWith('carteira_')) {
+                renderizarCarteira(aba);
+            }
+        }
+
+        function mudarLoja() {
+            const loja = document.getElementById('selectorLoja').value;
+            if (!loja) {
+                document.getElementById('lojaContent').innerHTML = '<p class="sem-dados">Selecione uma loja...</p>';
+                return;
+            }
+            renderizarLoja(loja);
+        }
+
+        function renderizarLoja(lojaId) {
+            const chaveVendedores = getChaveComMes('vendedores_' + lojaId);
+            const chaveDados = getChaveComMes('tabelaDados_' + lojaId);
+            
+            const vendedores = JSON.parse(localStorage.getItem(chaveVendedores) || '[]');
+            const dados = JSON.parse(localStorage.getItem(chaveDados) || '[]');
+            const lojaEstaBlockeada = verificarBloqueioLoja(lojaId);
+            
+            let html = '';
+            
+            // Adicionar label e botões de bloqueio/desbloqueio
+            if (lojaEstaBlockeada) {
+                html += '<div style="background: #ffe0b2; padding: 10px 15px; border-radius: 4px; margin-bottom: 15px; display: flex; gap: 15px; align-items: center;">';
+                html += '<span style="font-weight: 600; color: #ff9800;">🔒 BLOQUEADA - Aguardando ADMIN</span>';
+                if (usuarioAdmin) {
+                    html += '<button onclick="desbloquearLoja(' + "'" + lojaId + "'" + ')" style="padding: 6px 12px; background: #2196F3; color: white; border: none; border-radius: 4px; cursor: pointer; font-weight: 600;">🔓 Desbloquear</button>';
+                }
+                html += '</div>';
+            } else {
+                if (!usuarioAdmin) {
+                    html += '<div style="background: #c8e6c9; padding: 10px 15px; border-radius: 4px; margin-bottom: 15px; display: flex; gap: 15px; align-items: center;">';
+                    html += '<button onclick="bloquearLoja(' + "'" + lojaId + "'" + ')" style="padding: 6px 12px; background: #4CAF50; color: white; border: none; border-radius: 4px; cursor: pointer; font-weight: 600;">✓ Confirmar Metas</button>';
+                    html += '</div>';
+                }
+            }
+            
+            html += '<div class="vendedores-container">';
+            html += '<input type="text" id="novoVendedor" placeholder="Digite nome do vendedor... (aperte ENTER para adicionar)" ' + (lojaEstaBlockeada && !usuarioAdmin ? 'disabled' : '') + '>';
+            html += '<button class="btn btn-primary" onclick="adicionarVendedor(' + "'" + lojaId + "'" + ')" ' + (lojaEstaBlockeada && !usuarioAdmin ? 'disabled' : '') + '>+ Adicionar</button>';
+            html += '</div>';
+            
+            html += '<div class="vendedores-list">';
+            vendedores.forEach((v, i) => {
+                html += '<div class="vendedor-tag">' + v + ' <button onclick="removerVendedor(' + "'" + lojaId + "'" + ',' + i + ')" ' + (lojaEstaBlockeada && !usuarioAdmin ? 'disabled' : '') + '>✕</button></div>';
+            });
+            html += '</div>';
+            
+            html += '<div class="table-container"><table><thead><tr>';
+            html += '<th>VENDEDOR</th><th>Aparelho (R$)</th><th>Acessórios (R$)</th><th>Pitzi</th>';
+            html += '<th>Faturamento</th><th>Upgrade</th><th>Pós</th><th>Controle</th><th>Fibra</th><th>Portabilidade</th><th>Ação</th>';
+            html += '</tr></thead><tbody>';
+            
+            vendedores.forEach((vend, idx) => {
+                html += '<tr>';
+                html += '<td><strong>' + vend + '</strong></td>';
+                for (let i = 0; i < 9; i++) {
+                    const valor = dados[idx] ? dados[idx][i] || '' : '';
+                    const disabled = lojaEstaBlockeada && !usuarioAdmin ? 'disabled' : '';
+                    html += '<td><input type="number" value="' + valor + '" onchange="salvarLoja(' + "'" + lojaId + "'" + ')" step="0.01" ' + disabled + ' style="' + (disabled ? 'background: #f0f0f0; color: #999;' : '') + '"></td>';
+                }
+                html += '<td style="text-align: center;"><button onclick="copiarMetaParaOutros(' + "'" + lojaId + "'" + ',' + idx + ')" ' + (lojaEstaBlockeada && !usuarioAdmin ? 'disabled' : '') + ' style="padding: 4px 8px; background: #FF9800; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 11px; font-weight: 600;">📋 Copiar</button></td>';
+                html += '</tr>';
+            });
+            
+            // Adicionar linha LOJA TOTAL (EDITÁVEL)
+            if (vendedores.length > 0) {
+                const chaveLojaTotalDados = getChaveComMes('lojaTotal_' + lojaId);
+                let dadosLojaTotal = JSON.parse(localStorage.getItem(chaveLojaTotalDados) || '[]');
+                
+                // Se não tem dados, inicializa com array vazio
+                if (dadosLojaTotal.length === 0) {
+                    dadosLojaTotal = [0, 0, 0, 0, 0, 0, 0, 0, 0];
+                }
+                
+                html += '<tr class="loja-total">';
+                html += '<td><strong>LOJA TOTAL</strong></td>';
+                for (let i = 0; i < 9; i++) {
+                    const valor = dadosLojaTotal[i] || '';
+                    const disabled = lojaEstaBlockeada && !usuarioAdmin ? 'disabled' : '';
+                    html += '<td><input type="number" value="' + valor + '" onchange="salvarLoja(' + "'" + lojaId + "'" + ')" step="0.01" ' + disabled + ' style="font-weight: 600; ' + (disabled ? 'background: #f0f0f0; color: #999;' : '') + '"></td>';
+                }
+                html += '<td></td>'; // Coluna Ação vazia
+                html += '</tr>';
+            }
+            
+            html += '</tbody></table></div>';
+            
+            document.getElementById('lojaContent').innerHTML = html;
+            
+            // Adicionar listener de ENTER no input
+            setTimeout(() => {
+                const input = document.getElementById('novoVendedor');
+                if (input) {
+                    input.addEventListener('keypress', function(event) {
+                        if (event.key === 'Enter') {
+                            event.preventDefault();
+                            adicionarVendedor(lojaId);
+                        }
+                    });
+                }
+            }, 100);
+        }
+
+        function renderizarCarteira(carteiraId) {
+            const lojas = carteiraLojas[carteiraId];
+            const container = document.getElementById('lojas-' + carteiraId);
+            
+            let html = '';
+            lojas.forEach(loja => {
+                const lojaId = 'loja_' + String(loja.id).padStart(2, '0');
+                const chaveVendedores = getChaveComMes('vendedores_' + lojaId);
+                const chaveDados = getChaveComMes('tabelaDados_' + lojaId);
+                
+                const vendedores = JSON.parse(localStorage.getItem(chaveVendedores) || '[]');
+                const dados = JSON.parse(localStorage.getItem(chaveDados) || '[]');
+                
+                html += '<div class="loja-carteira-item">';
+                html += '<div class="loja-carteira-nome">📍 ' + loja.nome + ' (' + vendedores.length + ' vendedores)</div>';
+                
+                if (vendedores.length === 0) {
+                    html += '<p class="sem-dados">sem dados</p>';
+                } else {
+                    html += '<div class="table-container"><table><thead><tr>';
+                    html += '<th>VENDEDOR</th><th>Apar.</th><th>Acess.</th><th>Pitzi</th>';
+                    html += '<th>Fatur.</th><th>Upgr.</th><th>Pós</th><th>Ctrl</th><th>Fibra</th><th>Port.</th>';
+                    html += '</tr></thead><tbody>';
+                    
+                    let totais = [0, 0, 0, 0, 0, 0, 0, 0, 0];
+                    
+                    vendedores.forEach((vend, idx) => {
+                        html += '<tr>';
+                        html += '<td><strong>' + vend + '</strong></td>';
+                        for (let i = 0; i < 9; i++) {
+                            const valor = dados[idx] ? (dados[idx][i] || 0) : 0;
+                            html += '<td>' + valor + '</td>';
+                            totais[i] += parseFloat(valor) || 0;
+                        }
+                        html += '</tr>';
+                    });
+                    
+                    // Recuperar LOJA TOTAL salvo
+                    const chaveLojaTotalDados = getChaveComMes('lojaTotal_' + lojaId);
+                    const dadosLojaTotal = JSON.parse(localStorage.getItem(chaveLojaTotalDados) || '[]');
+                    
+                    html += '<tr class="loja-total">';
+                    html += '<td><strong>LOJA TOTAL</strong></td>';
+                    for (let i = 0; i < 9; i++) {
+                        const valor = dadosLojaTotal[i] || totais[i]; // Prioriza o valor salvo, senão usa a soma
+                        html += '<td><strong>' + valor + '</strong></td>';
+                    }
+                    html += '</tr>';
+                    
+                    html += '</tbody></table></div>';
+                }
+                
+                html += '</div>';
+            });
+            
+            container.innerHTML = html;
+        }
+
+        function adicionarVendedor(lojaId) {
+            const input = document.getElementById('novoVendedor');
+            const nome = input.value.trim().toUpperCase();
+            if (!nome) { alert('Digite o nome!'); return; }
+            
+            const chave = getChaveComMes('vendedores_' + lojaId);
+            let vendedores = JSON.parse(localStorage.getItem(chave) || '[]');
+            vendedores.push(nome);
+            localStorage.setItem(chave, JSON.stringify(vendedores));
+            input.value = '';
+            renderizarLoja(lojaId);
+            
+            // Atualizar todas as carteiras
+            Object.keys(carteiraLojas).forEach(cartId => renderizarCarteira(cartId));
+        }
+
+        function removerVendedor(lojaId, idx) {
+            const chaveVendedores = getChaveComMes('vendedores_' + lojaId);
+            const chaveDados = getChaveComMes('tabelaDados_' + lojaId);
+            
+            let vendedores = JSON.parse(localStorage.getItem(chaveVendedores) || '[]');
+            vendedores.splice(idx, 1);
+            localStorage.setItem(chaveVendedores, JSON.stringify(vendedores));
+            
+            let dados = JSON.parse(localStorage.getItem(chaveDados) || '[]');
+            dados.splice(idx, 1);
+            localStorage.setItem(chaveDados, JSON.stringify(dados));
+            
+            renderizarLoja(lojaId);
+            Object.keys(carteiraLojas).forEach(cartId => renderizarCarteira(cartId));
+        }
+        
+        function copiarMetaParaOutros(lojaId, idxVendedor) {
+            const chaveVendedores = getChaveComMes('vendedores_' + lojaId);
+            const chaveDados = getChaveComMes('tabelaDados_' + lojaId);
+            
+            const vendedores = JSON.parse(localStorage.getItem(chaveVendedores) || '[]');
+            let dados = JSON.parse(localStorage.getItem(chaveDados) || '[]');
+            
+            // Pegar dados do vendedor selecionado
+            const dadosVendedor = dados[idxVendedor];
+            
+            if (!dadosVendedor || dadosVendedor.every(v => v === 0 || v === '')) {
+                alert('❌ Preencha os dados do vendedor primeiro!');
+                return;
+            }
+            
+            const confirma = confirm(`✓ Copiar os dados de "${vendedores[idxVendedor]}" para os outros ${vendedores.length - 1} vendedores?`);
+            if (!confirma) return;
+            
+            // Copiar para todos os outros
+            for (let i = 0; i < vendedores.length; i++) {
+                if (i !== idxVendedor) {
+                    dados[i] = [...dadosVendedor]; // Copia os valores
+                }
+            }
+            
+            localStorage.setItem(chaveDados, JSON.stringify(dados));
+            renderizarLoja(lojaId);
+            Object.keys(carteiraLojas).forEach(cartId => renderizarCarteira(cartId));
+            
+            alert(`✅ Dados copiados para ${vendedores.length - 1} vendedor(es)!`);
+        }
+
+        function salvarLoja(lojaId) {
+            const inputs = document.querySelectorAll('#lojaContent input[type="number"]');
+            const chaveVendedores = getChaveComMes('vendedores_' + lojaId);
+            const chaveDados = getChaveComMes('tabelaDados_' + lojaId);
+            const chaveLojaTotalDados = getChaveComMes('lojaTotal_' + lojaId);
+            
+            const vendedores = JSON.parse(localStorage.getItem(chaveVendedores) || '[]');
+            let dados = [];
+            let dadosLojaTotal = [];
+            
+            // Salvar dados dos vendedores
+            for (let i = 0; i < vendedores.length; i++) {
+                let linha = [];
+                for (let j = 0; j < 9; j++) {
+                    const idx = i * 9 + j;
+                    linha.push(inputs[idx]?.value || 0);
+                }
+                dados.push(linha);
+            }
+            
+            // Salvar dados de LOJA TOTAL (última linha)
+            if (vendedores.length > 0) {
+                for (let j = 0; j < 9; j++) {
+                    const idx = vendedores.length * 9 + j;
+                    dadosLojaTotal.push(inputs[idx]?.value || 0);
+                }
+                localStorage.setItem(chaveLojaTotalDados, JSON.stringify(dadosLojaTotal));
+            }
+            
+            localStorage.setItem(chaveDados, JSON.stringify(dados));
+            Object.keys(carteiraLojas).forEach(cartId => renderizarCarteira(cartId));
+        }
+
+        function salvarCarteira(carteiraId) {
+            const num = carteiraId.split('_')[1];
+            const campos = ['aparelho', 'acessorios', 'pitzi', 'faturamento', 'upgrade', 'pos', 'controle', 'fibra', 'portabilidade'];
+            const dados = {};
+            campos.forEach(c => {
+                const input = document.getElementById('cart' + num + '-' + c);
+                dados[c] = input ? input.value : 0;
+            });
+            const chave = getChaveComMes('metas_' + carteiraId);
+            localStorage.setItem(chave, JSON.stringify(dados));
+            renderizarResumoCarteira(carteiraId);
+        }
+        
+        // ===== FUNÇÕES PARA OCULTAR/MOSTRAR RESUMO =====
+        function ocultarSecao(idWrapper, idResumo, idBotao) {
+            const wrapper = document.getElementById(idWrapper);
+            const resumo = document.getElementById(idResumo);
+            const botao = document.getElementById(idBotao);
+            
+            if (wrapper && resumo && botao) {
+                wrapper.style.display = 'none';
+                resumo.style.display = 'grid';
+                botao.style.display = 'inline-block';
+            }
+        }
+        
+        function mostrarSecao(idWrapper, idResumo, idBotao) {
+            const wrapper = document.getElementById(idWrapper);
+            const resumo = document.getElementById(idResumo);
+            const botao = document.getElementById(idBotao);
+            
+            if (wrapper && resumo && botao) {
+                wrapper.style.display = 'block';
+                resumo.style.display = 'none';
+                botao.style.display = 'none';
+            }
+        }
+        
+        function renderizarResumoCarteira(carteiraId) {
+            const num = carteiraId.split('_')[1];
+            const campos = ['aparelho', 'acessorios', 'pitzi', 'faturamento', 'upgrade', 'pos', 'controle', 'fibra', 'portabilidade'];
+            const labels = ['Aparelho (R$)', 'Acessórios (R$)', 'Pitzi (Qtd)', 'Faturamento (R$)', 'Upgrade (R$)', 'Pós (Qtd)', 'Controle (Qtd)', 'Fibra (Qtd)', 'Portabilidade (Qtd)'];
+            
+            const chave = getChaveComMes('metas_' + carteiraId);
+            const dados = JSON.parse(localStorage.getItem(chave) || '{}');
+            const container = document.getElementById('resumo-' + carteiraId);
+            
+            let html = '';
+            campos.forEach((campo, idx) => {
+                const valor = dados[campo] || '—';
+                html += `<div style="background: white; padding: 10px; border-radius: 4px; text-align: center; border: 1px solid #c8e6c9;">
+                    <div style="font-size: 11px; color: #666; font-weight: 600; margin-bottom: 5px;">${labels[idx]}</div>
+                    <div style="font-size: 16px; font-weight: 700; color: #2e7d32;">${valor}</div>
+                </div>`;
+            });
+            
+            if (container) container.innerHTML = html;
+        }
+
+        function salvarFranquia() {
+            const campos = ['aparelho', 'acessorios', 'pitzi', 'faturamento', 'upgrade', 'pos', 'controle', 'fibra', 'portabilidade'];
+            const dados = {};
+            campos.forEach(c => {
+                const input = document.getElementById('franquia-' + c);
+                dados[c] = input ? input.value : 0;
+            });
+            const chave = getChaveComMes('metas_franquia');
+            localStorage.setItem(chave, JSON.stringify(dados));
+            renderizarResumoFranquia();
+        }
+        
+        function renderizarResumoFranquia() {
+            const campos = ['aparelho', 'acessorios', 'pitzi', 'faturamento', 'upgrade', 'pos', 'controle', 'fibra', 'portabilidade'];
+            const labels = ['Aparelho (R$)', 'Acessórios (R$)', 'Pitzi (Qtd)', 'Faturamento (R$)', 'Upgrade (R$)', 'Pós (Qtd)', 'Controle (Qtd)', 'Fibra (Qtd)', 'Portabilidade (Qtd)'];
+            
+            const chave = getChaveComMes('metas_franquia');
+            const dados = JSON.parse(localStorage.getItem(chave) || '{}');
+            const container = document.getElementById('resumo-franquia');
+            
+            let html = '';
+            campos.forEach((campo, idx) => {
+                const valor = dados[campo] || '—';
+                html += `<div style="background: white; padding: 10px; border-radius: 4px; text-align: center; border: 1px solid #c8e6c9;">
+                    <div style="font-size: 11px; color: #666; font-weight: 600; margin-bottom: 5px;">${labels[idx]}</div>
+                    <div style="font-size: 16px; font-weight: 700; color: #2e7d32;">${valor}</div>
+                </div>`;
+            });
+            
+            if (container) container.innerHTML = html;
+        }
+
+        window.addEventListener('load', () => {
+            // Verificar se tem acesso salvo
+            if (!verificarNivelAcesso()) {
+                // Mostrar tela de login
+                document.getElementById('telaLogin').style.display = 'flex';
+                document.getElementById('telaPrincipal').style.display = 'none';
+                return;
+            }
+            
+            // Tem acesso: mostrar painel
+            exibirPainelPrincipal();
+            
+            preencherSeletorAno();
+            
+            // Atualizar selectores com valores atuais
+            const selectMes = document.getElementById('seletorMes');
+            const selectAno = document.getElementById('seletorAno');
+            if (selectMes) selectMes.value = mesAtual;
+            if (selectAno) selectAno.value = anoAtual;
+            
+            atualizarMesAnoDisplay();
+            recarregarDados();
+        });
+    </script>
+</body>
+</html>
