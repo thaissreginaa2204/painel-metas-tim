@@ -1250,95 +1250,106 @@
         };
 
         let firebaseDB = null;
-        let usuarioLogado = null;
+        let pcId = 'PC' + Math.random().toString(36).substr(2, 9); // ID único do PC
 
         try {
             firebase.initializeApp(firebaseConfig);
             firebaseDB = firebase.database();
-            console.log('✅ Firebase inicializado com sucesso');
+            console.log('✅ Firebase inicializado com sucesso - PC:', pcId);
         } catch(e) {
             console.log('⚠️ Firebase não inicializado (teste offline)', e.message);
         }
 
-        function salvarNoFirebase(colecao, dados) {
-            if (!firebaseDB || !usuarioLogado) return;
-            try {
-                firebaseDB.ref(colecao + '/' + usuarioLogado).set({
-                    ...dados,
-                    atualizadoEm: new Date().toISOString()
-                }).then(() => {
-                    console.log('✅ Sincronizado com Firebase:', colecao);
-                }).catch(err => {
-                    console.log('⚠️ Erro ao sincronizar:', err.message);
-                });
-            } catch(e) {
-                console.log('⚠️ Firebase offline');
-            }
+        // FUNÇÃO: normalizar chaves para Firebase (remover : e .)
+        function normalizarChave(chave) {
+            return chave.replace(/[\.:]/g, '_');
         }
 
-        function carregarDoFirebase(colecao, callback) {
-            if (!firebaseDB || !usuarioLogado) return;
-            try {
-                firebaseDB.ref(colecao + '/' + usuarioLogado).once('value', snapshot => {
-                    const dados = snapshot.val();
-                    if (dados) {
-                        callback(dados);
-                        console.log('✅ Carregado do Firebase:', colecao);
-                    }
-                }).catch(err => {
-                    console.log('⚠️ Erro ao carregar:', err.message);
-                });
-            } catch(e) {
-                console.log('⚠️ Firebase offline');
-            }
-        }
-
-        // Modificar função de login para rastrear usuário
-        const originalEntrarComoGerente = window.entrarComoGerente;
-        window.entrarComoGerente = function() {
-            usuarioLogado = 'gerente-' + new Date().getTime();
+        // FUNÇÃO: salvar NO localStorage E Firebase
+        function salvarLocalEFirebase(chaveLocal, dados) {
+            // Salva no localStorage
+            localStorage.setItem(chaveLocal, JSON.stringify(dados));
+            
+            // Salva no Firebase com chave normalizada
             if (firebaseDB) {
-                firebaseDB.ref('usuarios/' + usuarioLogado).set({
-                    tipo: 'gerente',
-                    online: true,
-                    loginEm: new Date().toISOString()
-                });
+                const chaveFB = normalizarChave(chaveLocal);
+                try {
+                    firebaseDB.ref('dados/' + chaveFB).set({
+                        valor: dados,
+                        atualizadoEm: new Date().toISOString(),
+                        atualizadoPor: pcId
+                    }).catch(err => console.log('⚠️ Firebase:', err.message));
+                } catch(e) {
+                    console.log('⚠️ Firebase offline');
+                }
             }
-            return originalEntrarComoGerente.call(this);
-        };
+        }
 
-        // Sincronizar ao salvar carteira
+        // FUNÇÃO: carregar do Firebase e sincronizar
+        function carregarDoFirebase(chaveLocal) {
+            if (!firebaseDB) return;
+            const chaveFB = normalizarChave(chaveLocal);
+            try {
+                firebaseDB.ref('dados/' + chaveFB).once('value', snapshot => {
+                    const obj = snapshot.val();
+                    if (obj && obj.valor) {
+                        localStorage.setItem(chaveLocal, JSON.stringify(obj.valor));
+                        console.log('✅ Sincronizado do Firebase:', chaveLocal);
+                    }
+                }).catch(err => console.log('⚠️ Erro Firebase:', err.message));
+            } catch(e) {
+                console.log('⚠️ Firebase offline');
+            }
+        }
+
+        // Interceptar salvarCarteira
         const originalSalvarCarteira = window.salvarCarteira;
         window.salvarCarteira = function(nomeCarteira) {
             const resultado = originalSalvarCarteira.call(this, nomeCarteira);
-            if (firebaseDB) {
-                const dados = JSON.parse(localStorage.getItem(getChaveComMes(nomeCarteira)) || '{}');
-                salvarNoFirebase('carteiras/' + nomeCarteira, dados);
-            }
+            const chave = getChaveComMes('metas_' + nomeCarteira);
+            const dados = JSON.parse(localStorage.getItem(chave) || '{}');
+            salvarLocalEFirebase(chave, dados);
             return resultado;
         };
 
-        // Sincronizar ao salvar loja
+        // Interceptar salvarLoja
         const originalSalvarLoja = window.salvarLoja;
-        window.salvarLoja = function(nomeLoja) {
-            const resultado = originalSalvarLoja.call(this, nomeLoja);
-            if (firebaseDB) {
-                const dados = JSON.parse(localStorage.getItem(getChaveComMes(nomeLoja)) || '{}');
-                salvarNoFirebase('lojas/' + nomeLoja, dados);
-            }
+        window.salvarLoja = function(lojaId) {
+            const resultado = originalSalvarLoja.call(this, lojaId);
+            const chaveDados = getChaveComMes('tabelaDados_' + lojaId);
+            const chaveVendedores = getChaveComMes('vendedores_' + lojaId);
+            const chaveLojaTotalDados = getChaveComMes('lojaTotal_' + lojaId);
+            
+            const dados = JSON.parse(localStorage.getItem(chaveDados) || '[]');
+            const vendedores = JSON.parse(localStorage.getItem(chaveVendedores) || '[]');
+            const lojaTotal = JSON.parse(localStorage.getItem(chaveLojaTotalDados) || '[]');
+            
+            salvarLocalEFirebase(chaveDados, dados);
+            salvarLocalEFirebase(chaveVendedores, vendedores);
+            salvarLocalEFirebase(chaveLojaTotalDados, lojaTotal);
             return resultado;
         };
 
-        // Sincronizar ao salvar franquia
+        // Interceptar salvarFranquia
         const originalSalvarFranquia = window.salvarFranquia;
         window.salvarFranquia = function() {
             const resultado = originalSalvarFranquia.call(this);
-            if (firebaseDB) {
-                const dados = JSON.parse(localStorage.getItem(getChaveComMes('metas_franquia')) || '{}');
-                salvarNoFirebase('franquias/franquia', dados);
-            }
+            const chave = getChaveComMes('metas_franquia');
+            const dados = JSON.parse(localStorage.getItem(chave) || '{}');
+            salvarLocalEFirebase(chave, dados);
             return resultado;
         };
+
+        // Interceptar adicionarVendedor
+        const originalAdicionarVendedor = window.adicionarVendedor;
+        window.adicionarVendedor = function(lojaId) {
+            const resultado = originalAdicionarVendedor.call(this, lojaId);
+            const chave = getChaveComMes('vendedores_' + lojaId);
+            const dados = JSON.parse(localStorage.getItem(chave) || '[]');
+            salvarLocalEFirebase(chave, dados);
+            return resultado;
+        };
+        
         // ========== FIM FIREBASE ==========
 
         window.addEventListener('load', () => {
@@ -1362,7 +1373,32 @@
             if (selectAno) selectAno.value = anoAtual;
             
             atualizarMesAnoDisplay();
-            recarregarDados();
+            
+            // Carregar dados do Firebase (sincronizar entre PCs)
+            if (firebaseDB) {
+                console.log('🔄 Carregando dados do Firebase...');
+                setTimeout(() => {
+                    // Carteiras
+                    for (let i = 1; i <= 3; i++) {
+                        const chave = getChaveComMes('metas_carteira_0' + i);
+                        carregarDoFirebase(chave);
+                    }
+                    // Lojas
+                    for (let i = 1; i <= 22; i++) {
+                        const lojaId = 'loja_' + String(i).padStart(2, '0');
+                        carregarDoFirebase(getChaveComMes('vendedores_' + lojaId));
+                        carregarDoFirebase(getChaveComMes('tabelaDados_' + lojaId));
+                        carregarDoFirebase(getChaveComMes('lojaTotal_' + lojaId));
+                    }
+                    // Franquia
+                    carregarDoFirebase(getChaveComMes('metas_franquia'));
+                    
+                    // Depois carrega tudo no painel
+                    recarregarDados();
+                }, 1000); // Espera 1 segundo pra carregar tudo
+            } else {
+                recarregarDados();
+            }
             
             // Sincronizar com Firebase periodicamente
             if (firebaseDB) {
