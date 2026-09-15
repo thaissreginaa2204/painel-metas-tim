@@ -1285,21 +1285,31 @@
             }
         }
 
-        // FUNÇÃO: carregar do Firebase e sincronizar
+        // FUNÇÃO: carregar do Firebase e sincronizar (retorna Promise)
         function carregarDoFirebase(chaveLocal) {
-            if (!firebaseDB) return;
-            const chaveFB = normalizarChave(chaveLocal);
-            try {
-                firebaseDB.ref('dados/' + chaveFB).once('value', snapshot => {
-                    const obj = snapshot.val();
-                    if (obj && obj.valor) {
-                        localStorage.setItem(chaveLocal, JSON.stringify(obj.valor));
-                        console.log('✅ Sincronizado do Firebase:', chaveLocal);
-                    }
-                }).catch(err => console.log('⚠️ Erro Firebase:', err.message));
-            } catch(e) {
-                console.log('⚠️ Firebase offline');
-            }
+            return new Promise((resolve) => {
+                if (!firebaseDB) {
+                    resolve();
+                    return;
+                }
+                const chaveFB = normalizarChave(chaveLocal);
+                try {
+                    firebaseDB.ref('dados/' + chaveFB).once('value', snapshot => {
+                        const obj = snapshot.val();
+                        if (obj && obj.valor) {
+                            localStorage.setItem(chaveLocal, JSON.stringify(obj.valor));
+                            console.log('✅ Sincronizado do Firebase:', chaveLocal);
+                        }
+                        resolve();
+                    }).catch(err => {
+                        console.log('⚠️ Erro Firebase:', err.message);
+                        resolve();
+                    });
+                } catch(e) {
+                    console.log('⚠️ Firebase offline');
+                    resolve();
+                }
+            });
         }
 
         // Interceptar salvarCarteira
@@ -1377,25 +1387,28 @@
             // Carregar dados do Firebase (sincronizar entre PCs)
             if (firebaseDB) {
                 console.log('🔄 Carregando dados do Firebase...');
-                setTimeout(() => {
-                    // Carteiras
-                    for (let i = 1; i <= 3; i++) {
-                        const chave = getChaveComMes('metas_carteira_0' + i);
-                        carregarDoFirebase(chave);
-                    }
-                    // Lojas
-                    for (let i = 1; i <= 22; i++) {
-                        const lojaId = 'loja_' + String(i).padStart(2, '0');
-                        carregarDoFirebase(getChaveComMes('vendedores_' + lojaId));
-                        carregarDoFirebase(getChaveComMes('tabelaDados_' + lojaId));
-                        carregarDoFirebase(getChaveComMes('lojaTotal_' + lojaId));
-                    }
-                    // Franquia
-                    carregarDoFirebase(getChaveComMes('metas_franquia'));
-                    
-                    // Depois carrega tudo no painel
+                const promessas = [];
+                
+                // Carteiras
+                for (let i = 1; i <= 3; i++) {
+                    const chave = getChaveComMes('metas_carteira_0' + i);
+                    promessas.push(carregarDoFirebase(chave));
+                }
+                // Lojas
+                for (let i = 1; i <= 22; i++) {
+                    const lojaId = 'loja_' + String(i).padStart(2, '0');
+                    promessas.push(carregarDoFirebase(getChaveComMes('vendedores_' + lojaId)));
+                    promessas.push(carregarDoFirebase(getChaveComMes('tabelaDados_' + lojaId)));
+                    promessas.push(carregarDoFirebase(getChaveComMes('lojaTotal_' + lojaId)));
+                }
+                // Franquia
+                promessas.push(carregarDoFirebase(getChaveComMes('metas_franquia')));
+                
+                // Aguarda TODAS as requisições terminarem
+                Promise.all(promessas).then(() => {
+                    console.log('✅ Todos os dados carregados do Firebase!');
                     recarregarDados();
-                }, 1000); // Espera 1 segundo pra carregar tudo
+                });
             } else {
                 recarregarDados();
             }
