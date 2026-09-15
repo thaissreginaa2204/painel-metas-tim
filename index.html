@@ -517,6 +517,42 @@
             return 'bloqueio_loja_' + lojaId + '_' + mesAtual + '_' + anoAtual;
         }
         
+        function validarEBloquearLoja(lojaId) {
+            const chaveVendedores = getChaveComMes('vendedores_' + lojaId);
+            const chaveDados = getChaveComMes('tabelaDados_' + lojaId);
+            
+            const vendedores = JSON.parse(localStorage.getItem(chaveVendedores) || '[]');
+            const dados = JSON.parse(localStorage.getItem(chaveDados) || '[]');
+            
+            // Validar se todos os campos estão preenchidos
+            if (vendedores.length === 0) {
+                alert('⚠️ Adicione pelo menos 1 vendedor!');
+                return;
+            }
+            
+            let todosPreenchidos = true;
+            for (let i = 0; i < vendedores.length; i++) {
+                if (!dados[i]) {
+                    alert(`⚠️ Preencha os dados de "${vendedores[i]}"!`);
+                    todosPreenchidos = false;
+                    break;
+                }
+                for (let j = 0; j < 9; j++) {
+                    if (!dados[i][j] || dados[i][j] == '0' || dados[i][j] == '') {
+                        alert(`⚠️ Preencha TODOS os campos de "${vendedores[i]}" com valores > 0!`);
+                        todosPreenchidos = false;
+                        break;
+                    }
+                }
+                if (!todosPreenchidos) break;
+            }
+            
+            if (!todosPreenchidos) return;
+            
+            // Se passou na validação, bloqueia
+            bloquearLoja(lojaId);
+        }
+        
         function bloquearLoja(lojaId) {
             const lojaNome = document.querySelector('select[onchange="mudarLoja()"]').value;
             
@@ -839,7 +875,7 @@
             } else {
                 if (!usuarioAdmin) {
                     html += '<div style="background: #c8e6c9; padding: 10px 15px; border-radius: 4px; margin-bottom: 15px; display: flex; gap: 15px; align-items: center;">';
-                    html += '<button onclick="bloquearLoja(' + "'" + lojaId + "'" + ')" style="padding: 6px 12px; background: #4CAF50; color: white; border: none; border-radius: 4px; cursor: pointer; font-weight: 600;">✓ Confirmar Metas</button>';
+                    html += '<button onclick="validarEBloquearLoja(' + "'" + lojaId + "'" + ')" style="padding: 6px 12px; background: #4CAF50; color: white; border: none; border-radius: 4px; cursor: pointer; font-weight: 600;">✓ Confirmar Metas</button>';
                     html += '</div>';
                 }
             }
