@@ -1092,7 +1092,7 @@
                 html += '<td><input type="number" value="' + valor0 + '" id="cell_' + idx + '_0" onchange="salvarLoja(' + "'" + lojaId + "'" + ')" step="0.01" ' + (lojaEstaBlockeada && !usuarioAdmin ? 'disabled' : '') + ' style="' + (lojaEstaBlockeada && !usuarioAdmin ? 'background: #f0f0f0; color: #999;' : '') + '"></td>';
                 // Acessórios (R$) - coluna 1
                 let valor1 = dados[idx] ? dados[idx][1] || '' : '';
-                html += '<td><input type="number" value="' + valor1 + '" id="cell_' + idx + '_1" onchange="salvarLoja(' + "'" + lojaId + "'" + ')" step="0.01" ' + (lojaEstaBlockeada && !usuarioAdmin ? 'disabled' : '') + ' style="' + (lojaEstaBlockeada && !usuarioAdmin ? 'background: #f0f0f0; color: #999;' : '') + '"></td>';
+                html += '<td><input type="number" value="' + valor1 + '" id="cell_' + idx + '_1" onchange="calcular145Acessorios(' + idx + ', ' + "'" + lojaId + "'" + '); salvarLoja(' + "'" + lojaId + "'" + ')" step="0.01" ' + (lojaEstaBlockeada && !usuarioAdmin ? 'disabled' : '') + ' style="' + (lojaEstaBlockeada && !usuarioAdmin ? 'background: #f0f0f0; color: #999;' : '') + '"></td>';
                 // 145% Acessórios - CALCULADO AUTOMATICAMENTE (EDITÁVEL)
                 let valor145 = dados[idx] && dados[idx][1] ? (parseFloat(dados[idx][1]) * 1.45).toFixed(2) : '';
                 html += '<td><input type="number" value="' + valor145 + '" id="cell_' + idx + '_145" onchange="salvarLoja(' + "'" + lojaId + "'" + ')" step="0.01" ' + (lojaEstaBlockeada && !usuarioAdmin ? 'disabled' : '') + ' style="background: #e3f2fd; font-weight: 600; border: 2px solid #2196F3; ' + (lojaEstaBlockeada && !usuarioAdmin ? 'background: #f0f0f0; color: #999;' : '') + '"></td>';
@@ -1237,12 +1237,18 @@
             let vendedores = JSON.parse(localStorage.getItem(chave) || '[]');
             vendedores.push(nome);
             localStorage.setItem(chave, JSON.stringify(vendedores));
-            input.value = '';
             renderizarLoja(lojaId);
-            input.focus(); // ← Volta focus pro campo para próximo vendedor
             
             // Atualizar todas as carteiras
             Object.keys(carteiraLojas).forEach(cartId => renderizarCarteira(cartId));
+            
+            // Dar focus no campo DEPOIS do render terminar
+            setTimeout(() => {
+                const novoInput = document.getElementById('novoVendedor');
+                if (novoInput) {
+                    novoInput.focus();
+                }
+            }, 50);
         }
 
         // FUNÇÃO: Formatar valor em R$
@@ -1255,6 +1261,16 @@
         function calcular145porcento(valor) {
             if (!valor || valor === '' || valor === '0') return '0';
             return (parseFloat(valor) * 1.45).toFixed(2);
+        }
+        
+        // FUNÇÃO: Calcular 145% Acessórios automaticamente
+        function calcular145Acessorios(idx, lojaId) {
+            const inputAcess = document.getElementById('cell_' + idx + '_1');
+            const input145 = document.getElementById('cell_' + idx + '_145');
+            if (inputAcess && input145) {
+                const valor = parseFloat(inputAcess.value) || 0;
+                input145.value = (valor * 1.45).toFixed(2);
+            }
         }
         
         function removerVendedor(lojaId, idx) {
@@ -1306,7 +1322,6 @@
         }
 
         function salvarLoja(lojaId) {
-            const inputs = document.querySelectorAll('#lojaContent input[type="number"]');
             const chaveVendedores = getChaveComMes('vendedores_' + lojaId);
             const chaveDados = getChaveComMes('tabelaDados_' + lojaId);
             const chaveLojaTotalDados = getChaveComMes('lojaTotal_' + lojaId);
@@ -1315,21 +1330,40 @@
             let dados = [];
             let dadosLojaTotal = [];
             
-            // Salvar dados dos vendedores
+            // Mapear IDs para índices de dados (pulando o 145%)
+            // cell_i_0=Aparelho, cell_i_1=Acessórios, cell_i_2=Pitzi, cell_i_3=Faturamento, etc.
+            const colunasIndices = [0, 1, 2, 3, 4, 5, 6, 7, 8]; // Aparelho, Acessórios, Pitzi, Faturamento, Upgrade, Pós, Controle, Fibra, Portabilidade
+            
+            // Salvar dados dos vendedores USANDO IDs CORRETOS
             for (let i = 0; i < vendedores.length; i++) {
                 let linha = [];
-                for (let j = 0; j < 9; j++) {
-                    const idx = i * 9 + j;
-                    linha.push(inputs[idx]?.value || 0);
+                for (let j of colunasIndices) {
+                    const input = document.getElementById('cell_' + i + '_' + j);
+                    linha.push(parseFloat(input?.value || 0));
                 }
                 dados.push(linha);
             }
             
-            // Salvar dados de LOJA TOTAL (última linha)
+            // Salvar dados de LOJA TOTAL USANDO IDS CORRETOS (sem 145%)
             if (vendedores.length > 0) {
+                // Calcular somas corretamente
+                let somasTotal = [0, 0, 0, 0, 0, 0, 0, 0, 0]; // 9 colunas de dados
+                for (let i = 0; i < vendedores.length; i++) {
+                    for (let j = 0; j < 9; j++) {
+                        somasTotal[j] += parseFloat(dados[i][j] || 0);
+                    }
+                }
+                
+                // Mas permitir edição manual
                 for (let j = 0; j < 9; j++) {
-                    const idx = vendedores.length * 9 + j;
-                    dadosLojaTotal.push(inputs[idx]?.value || 0);
+                    const input = document.getElementById('loja_total_' + j);
+                    if (input && input.value !== '') {
+                        // Se foi editado manualmente, usar o valor editado
+                        dadosLojaTotal.push(parseFloat(input.value || 0));
+                    } else {
+                        // Senão, usar a soma
+                        dadosLojaTotal.push(somasTotal[j]);
+                    }
                 }
                 localStorage.setItem(chaveLojaTotalDados, JSON.stringify(dadosLojaTotal));
             }
