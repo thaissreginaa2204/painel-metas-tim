@@ -534,8 +534,8 @@
                     break;
                 }
                 for (let j = 0; j < 9; j++) {
-                    if (!dados[i][j] || dados[i][j] == '0' || dados[i][j] == '') {
-                        alert(`⚠️ Preencha TODOS os campos de "${vendedores[i]}" com valores > 0!`);
+                    if (dados[i][j] === '' || dados[i][j] === null || dados[i][j] === undefined) {
+                        alert(`⚠️ Preencha TODOS os campos de "${vendedores[i]}"!`);
                         todosPreenchidos = false;
                         break;
                     }
@@ -1363,13 +1363,13 @@
             const inputs = wrapper.querySelectorAll('input[type="number"]');
             let todosPreenchidos = true;
             inputs.forEach(input => {
-                if (!input.value || input.value == '0' || input.value == '') {
+                if (input.value === '' || input.value === null || input.value === undefined) {
                     todosPreenchidos = false;
                 }
             });
             
             if (!todosPreenchidos) {
-                alert('⚠️ Preencha TODOS os campos com valores > 0!');
+                alert('⚠️ Preencha TODOS os campos!');
                 return;
             }
             
