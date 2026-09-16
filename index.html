@@ -1174,8 +1174,11 @@
             const lojas = carteiraLojas[carteiraId];
             const container = document.getElementById('lojas-' + carteiraId);
             
+            // ORDENAR LOJAS NUMERICAMENTE
+            const lojasOrdenadas = [...lojas].sort((a, b) => a.id - b.id);
+            
             let html = '';
-            lojas.forEach(loja => {
+            lojasOrdenadas.forEach(loja => {
                 const lojaId = 'loja_' + String(loja.id).padStart(2, '0');
                 const chaveVendedores = getChaveComMes('vendedores_' + lojaId);
                 const chaveDados = getChaveComMes('tabelaDados_' + lojaId);
