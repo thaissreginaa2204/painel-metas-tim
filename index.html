@@ -163,7 +163,6 @@
                 <div class="metas-grid" id="wrapper-cart01">
                     <div class="meta-field"><label>Aparelho (R$)</label><input type="number" id="cart01-aparelho" step="0.01" onchange="salvarCarteira('carteira_01')"></div>
                     <div class="meta-field"><label>Acessórios (R$)</label><input type="number" id="cart01-acessorios" step="0.01" onchange="salvarCarteira('carteira_01')"></div>
-                    <div class="meta-field"><label>Pitzi (Qtd)</label><input type="number" id="cart01-pitzi" onchange="salvarCarteira('carteira_01')"></div>
                     <div class="meta-field"><label>Faturamento (R$)</label><input type="number" id="cart01-faturamento" step="0.01" onchange="salvarCarteira('carteira_01')"></div>
                     <div class="meta-field"><label>Upgrade (R$)</label><input type="number" id="cart01-upgrade" step="0.01" onchange="salvarCarteira('carteira_01')"></div>
                     <div class="meta-field"><label>Pós (Qtd)</label><input type="number" id="cart01-pos" onchange="salvarCarteira('carteira_01')"></div>
@@ -195,7 +194,6 @@
                 <div class="metas-grid" id="wrapper-cart02">
                     <div class="meta-field"><label>Aparelho (R$)</label><input type="number" id="cart02-aparelho" step="0.01" onchange="salvarCarteira('carteira_02')"></div>
                     <div class="meta-field"><label>Acessórios (R$)</label><input type="number" id="cart02-acessorios" step="0.01" onchange="salvarCarteira('carteira_02')"></div>
-                    <div class="meta-field"><label>Pitzi (Qtd)</label><input type="number" id="cart02-pitzi" onchange="salvarCarteira('carteira_02')"></div>
                     <div class="meta-field"><label>Faturamento (R$)</label><input type="number" id="cart02-faturamento" step="0.01" onchange="salvarCarteira('carteira_02')"></div>
                     <div class="meta-field"><label>Upgrade (R$)</label><input type="number" id="cart02-upgrade" step="0.01" onchange="salvarCarteira('carteira_02')"></div>
                     <div class="meta-field"><label>Pós (Qtd)</label><input type="number" id="cart02-pos" onchange="salvarCarteira('carteira_02')"></div>
@@ -227,7 +225,6 @@
                 <div class="metas-grid" id="wrapper-cart03">
                     <div class="meta-field"><label>Aparelho (R$)</label><input type="number" id="cart03-aparelho" step="0.01" onchange="salvarCarteira('carteira_03')"></div>
                     <div class="meta-field"><label>Acessórios (R$)</label><input type="number" id="cart03-acessorios" step="0.01" onchange="salvarCarteira('carteira_03')"></div>
-                    <div class="meta-field"><label>Pitzi (Qtd)</label><input type="number" id="cart03-pitzi" onchange="salvarCarteira('carteira_03')"></div>
                     <div class="meta-field"><label>Faturamento (R$)</label><input type="number" id="cart03-faturamento" step="0.01" onchange="salvarCarteira('carteira_03')"></div>
                     <div class="meta-field"><label>Upgrade (R$)</label><input type="number" id="cart03-upgrade" step="0.01" onchange="salvarCarteira('carteira_03')"></div>
                     <div class="meta-field"><label>Pós (Qtd)</label><input type="number" id="cart03-pos" onchange="salvarCarteira('carteira_03')"></div>
@@ -292,14 +289,13 @@
             <div id="wrapper-franquia" class="table-container">
                 <table>
                     <thead><tr>
-                        <th>FRANQUIA</th><th>Aparelho (R$)</th><th>Acessórios (R$)</th><th>Pitzi</th>
+                        <th>FRANQUIA</th><th>Aparelho (R$)</th><th>Acessórios (R$)</th>
                         <th>Faturamento</th><th>Upgrade</th><th>Pós</th><th>Controle</th><th>Fibra</th><th>Portabilidade</th>
                     </tr></thead>
                     <tbody><tr>
                         <td><strong>FRANQUIA</strong></td>
                         <td><input type="number" id="franquia-aparelho" step="0.01" onchange="salvarFranquia()"></td>
                         <td><input type="number" id="franquia-acessorios" step="0.01" onchange="salvarFranquia()"></td>
-                        <td><input type="number" id="franquia-pitzi" onchange="salvarFranquia()"></td>
                         <td><input type="number" id="franquia-faturamento" step="0.01" onchange="salvarFranquia()"></td>
                         <td><input type="number" id="franquia-upgrade" step="0.01" onchange="salvarFranquia()"></td>
                         <td><input type="number" id="franquia-pos" onchange="salvarFranquia()"></td>
@@ -769,7 +765,197 @@
         }
         
         function exportarPDF() {
-            const elemento = document.querySelector('.container');
+            // Cria um HTML formatado como RELATÓRIO profissional
+            let html = `
+                <div style="font-family: Arial, sans-serif; padding: 20px; color: #333;">
+                    
+                    <!-- HEADER -->
+                    <div style="text-align: center; margin-bottom: 30px; border-bottom: 2px solid #003DA5; padding-bottom: 15px;">
+                        <h1 style="margin: 0; color: #003DA5; font-size: 24px;">RELATÓRIO DE METAS</h1>
+                        <p style="margin: 5px 0; font-size: 14px; color: #666;">TIM - Grupo Lemar</p>
+                        <p style="margin: 5px 0; font-size: 12px; color: #999;">
+                            Período: <strong>${meses[mesAtual]} de ${anoAtual}</strong> | 
+                            Data de emissão: <strong>${new Date().toLocaleDateString('pt-BR')}</strong>
+                        </p>
+                    </div>
+                    
+                    <!-- CARTEIRAS -->
+            `;
+            
+            // Carteiras
+            ['carteira_01', 'carteira_02', 'carteira_03'].forEach(cart => {
+                const num = cart.split('_')[1];
+                const chave = getChaveComMes('metas_' + cart);
+                const dados = JSON.parse(localStorage.getItem(chave) || '{}');
+                
+                if (Object.keys(dados).length > 0) {
+                    html += `
+                        <div style="margin-bottom: 25px; page-break-inside: avoid;">
+                            <h2 style="color: #003DA5; font-size: 16px; border-left: 4px solid #FFA500; padding-left: 10px; margin: 15px 0 10px 0;">
+                                CARTEIRA ${num}
+                            </h2>
+                            <table style="width: 100%; border-collapse: collapse; font-size: 11px;">
+                                <tr style="background: #003DA5; color: white;">
+                                    <td style="padding: 8px; border: 1px solid #ddd;">Aparelho (R$)</td>
+                                    <td style="padding: 8px; border: 1px solid #ddd;">Acessórios (R$)</td>
+                                    <td style="padding: 8px; border: 1px solid #ddd;">Faturamento (R$)</td>
+                                    <td style="padding: 8px; border: 1px solid #ddd;">Upgrade (R$)</td>
+                                    <td style="padding: 8px; border: 1px solid #ddd;">Pós (Qtd)</td>
+                                    <td style="padding: 8px; border: 1px solid #ddd;">Controle (Qtd)</td>
+                                    <td style="padding: 8px; border: 1px solid #ddd;">Fibra (Qtd)</td>
+                                    <td style="padding: 8px; border: 1px solid #ddd;">Portabilidade (Qtd)</td>
+                                </tr>
+                                <tr style="background: #f9f9f9;">
+                                    <td style="padding: 8px; border: 1px solid #ddd;">R$ ${parseFloat(dados.aparelho || 0).toLocaleString('pt-BR', {minimumFractionDigits: 2})}</td>
+                                    <td style="padding: 8px; border: 1px solid #ddd;">R$ ${parseFloat(dados.acessorios || 0).toLocaleString('pt-BR', {minimumFractionDigits: 2})}</td>
+                                    <td style="padding: 8px; border: 1px solid #ddd;">R$ ${parseFloat(dados.faturamento || 0).toLocaleString('pt-BR', {minimumFractionDigits: 2})}</td>
+                                    <td style="padding: 8px; border: 1px solid #ddd;">R$ ${parseFloat(dados.upgrade || 0).toLocaleString('pt-BR', {minimumFractionDigits: 2})}</td>
+                                    <td style="padding: 8px; border: 1px solid #ddd;">${dados.pos || '0'}</td>
+                                    <td style="padding: 8px; border: 1px solid #ddd;">${dados.controle || '0'}</td>
+                                    <td style="padding: 8px; border: 1px solid #ddd;">${dados.fibra || '0'}</td>
+                                    <td style="padding: 8px; border: 1px solid #ddd;">${dados.portabilidade || '0'}</td>
+                                </tr>
+                            </table>
+                        </div>
+                    `;
+                }
+            });
+            
+            // FRANQUIA
+            const chaveFranquia = getChaveComMes('metas_franquia');
+            const franquiaData = JSON.parse(localStorage.getItem(chaveFranquia) || '{}');
+            
+            if (Object.keys(franquiaData).length > 0) {
+                html += `
+                    <div style="margin-bottom: 25px; page-break-inside: avoid;">
+                        <h2 style="color: #003DA5; font-size: 16px; border-left: 4px solid #FFA500; padding-left: 10px; margin: 15px 0 10px 0;">
+                            FRANQUIA
+                        </h2>
+                        <table style="width: 100%; border-collapse: collapse; font-size: 11px;">
+                            <tr style="background: #003DA5; color: white;">
+                                <td style="padding: 8px; border: 1px solid #ddd;">Aparelho (R$)</td>
+                                <td style="padding: 8px; border: 1px solid #ddd;">Acessórios (R$)</td>
+                                <td style="padding: 8px; border: 1px solid #ddd;">Faturamento (R$)</td>
+                                <td style="padding: 8px; border: 1px solid #ddd;">Upgrade (R$)</td>
+                                <td style="padding: 8px; border: 1px solid #ddd;">Pós (Qtd)</td>
+                                <td style="padding: 8px; border: 1px solid #ddd;">Controle (Qtd)</td>
+                                <td style="padding: 8px; border: 1px solid #ddd;">Fibra (Qtd)</td>
+                                <td style="padding: 8px; border: 1px solid #ddd;">Portabilidade (Qtd)</td>
+                            </tr>
+                            <tr style="background: #f9f9f9;">
+                                <td style="padding: 8px; border: 1px solid #ddd;">R$ ${parseFloat(franquiaData.aparelho || 0).toLocaleString('pt-BR', {minimumFractionDigits: 2})}</td>
+                                <td style="padding: 8px; border: 1px solid #ddd;">R$ ${parseFloat(franquiaData.acessorios || 0).toLocaleString('pt-BR', {minimumFractionDigits: 2})}</td>
+                                <td style="padding: 8px; border: 1px solid #ddd;">R$ ${parseFloat(franquiaData.faturamento || 0).toLocaleString('pt-BR', {minimumFractionDigits: 2})}</td>
+                                <td style="padding: 8px; border: 1px solid #ddd;">R$ ${parseFloat(franquiaData.upgrade || 0).toLocaleString('pt-BR', {minimumFractionDigits: 2})}</td>
+                                <td style="padding: 8px; border: 1px solid #ddd;">${franquiaData.pos || '0'}</td>
+                                <td style="padding: 8px; border: 1px solid #ddd;">${franquiaData.controle || '0'}</td>
+                                <td style="padding: 8px; border: 1px solid #ddd;">${franquiaData.fibra || '0'}</td>
+                                <td style="padding: 8px; border: 1px solid #ddd;">${franquiaData.portabilidade || '0'}</td>
+                            </tr>
+                        </table>
+                    </div>
+                `;
+            }
+            
+            // LOJAS
+            for (let i = 1; i <= 22; i++) {
+                const lojaId = 'loja_' + String(i).padStart(2, '0');
+                const chaveVendedores = getChaveComMes('vendedores_' + lojaId);
+                const chaveDados = getChaveComMes('tabelaDados_' + lojaId);
+                
+                const vendedores = JSON.parse(localStorage.getItem(chaveVendedores) || '[]');
+                const dados = JSON.parse(localStorage.getItem(chaveDados) || '[]');
+                
+                if (vendedores.length > 0) {
+                    const lojaMap = {
+                        'loja_01': '01 - SHOPPING',
+                        'loja_02': '02 - XV DE NOVEMBRO',
+                        'loja_03': '03 - SALDANHA',
+                        'loja_04': '04 - PORTÃO',
+                        'loja_05': '05 - RIO BRANCO',
+                        'loja_06': '06 - BATEL',
+                        'loja_07': '07 - REGIÃO CENTRO',
+                        'loja_08': '08 - APUCARANA 01',
+                        'loja_09': '09 - APUCARANA 02',
+                        'loja_10': '10 - LONDRINA',
+                        'loja_11': '11 - MARINGÁ',
+                        'loja_12': '12 - PONTA GROSSA',
+                        'loja_13': '13 - CAMPO MOURÃO',
+                        'loja_14': '14 - CASCAVEL',
+                        'loja_15': '15 - FÓZ DO IGUAÇU',
+                        'loja_16': '16 - IVAIPORÃ',
+                        'loja_17': '17 - GOIOERÊ',
+                        'loja_18': '18 - GUARAPUAVA',
+                        'loja_19': '19 - UNIÃO DA VITÓRIA',
+                        'loja_20': '20 - SANTA HELENA',
+                        'loja_21': '21 - TOLEDO',
+                        'loja_22': '22 - FRANCISCO BELTRÃO'
+                    };
+                    
+                    html += `
+                        <div style="margin-bottom: 25px; page-break-inside: avoid;">
+                            <h2 style="color: #003DA5; font-size: 16px; border-left: 4px solid #FFA500; padding-left: 10px; margin: 15px 0 10px 0;">
+                                ${lojaMap[lojaId] || lojaId.toUpperCase()}
+                            </h2>
+                            <table style="width: 100%; border-collapse: collapse; font-size: 10px;">
+                                <tr style="background: #003DA5; color: white;">
+                                    <td style="padding: 6px; border: 1px solid #ddd; font-weight: bold;">Vendedor</td>
+                                    <td style="padding: 6px; border: 1px solid #ddd;">Aparelho (R$)</td>
+                                    <td style="padding: 6px; border: 1px solid #ddd;">Acessórios (R$)</td>
+                                    <td style="padding: 6px; border: 1px solid #ddd;">145% Acessórios</td>
+                                    <td style="padding: 6px; border: 1px solid #ddd;">Pitzi</td>
+                                    <td style="padding: 6px; border: 1px solid #ddd;">Faturamento (R$)</td>
+                                    <td style="padding: 6px; border: 1px solid #ddd;">Upgrade (R$)</td>
+                                    <td style="padding: 6px; border: 1px solid #ddd;">Pós</td>
+                                    <td style="padding: 6px; border: 1px solid #ddd;">Controle</td>
+                                    <td style="padding: 6px; border: 1px solid #ddd;">Fibra</td>
+                                    <td style="padding: 6px; border: 1px solid #ddd;">Portabilidade</td>
+                                </tr>
+                    `;
+                    
+                    vendedores.forEach((v, idx) => {
+                        const d = dados[idx] || [];
+                        const aparelho = d[0] || '0';
+                        const acessorios = d[1] || '0';
+                        const calc145 = (parseFloat(acessorios) * 1.45).toFixed(2);
+                        const faturamento = d[3] || '0';
+                        const upgrade = d[4] || '0';
+                        
+                        html += `
+                            <tr style="background: ${idx % 2 === 0 ? '#f9f9f9' : 'white'};">
+                                <td style="padding: 6px; border: 1px solid #ddd; font-weight: bold;">${v}</td>
+                                <td style="padding: 6px; border: 1px solid #ddd;">R$ ${parseFloat(aparelho).toLocaleString('pt-BR', {minimumFractionDigits: 2})}</td>
+                                <td style="padding: 6px; border: 1px solid #ddd;">R$ ${parseFloat(acessorios).toLocaleString('pt-BR', {minimumFractionDigits: 2})}</td>
+                                <td style="padding: 6px; border: 1px solid #ddd; background: #e3f2fd; font-weight: bold;">R$ ${parseFloat(calc145).toLocaleString('pt-BR', {minimumFractionDigits: 2})}</td>
+                                <td style="padding: 6px; border: 1px solid #ddd;">${d[2] || '0'}</td>
+                                <td style="padding: 6px; border: 1px solid #ddd;">R$ ${parseFloat(faturamento).toLocaleString('pt-BR', {minimumFractionDigits: 2})}</td>
+                                <td style="padding: 6px; border: 1px solid #ddd;">R$ ${parseFloat(upgrade).toLocaleString('pt-BR', {minimumFractionDigits: 2})}</td>
+                                <td style="padding: 6px; border: 1px solid #ddd;">${d[5] || '0'}</td>
+                                <td style="padding: 6px; border: 1px solid #ddd;">${d[6] || '0'}</td>
+                                <td style="padding: 6px; border: 1px solid #ddd;">${d[7] || '0'}</td>
+                                <td style="padding: 6px; border: 1px solid #ddd;">${d[8] || '0'}</td>
+                            </tr>
+                        `;
+                    });
+                    
+                    html += `</table></div>`;
+                }
+            }
+            
+            // FOOTER
+            html += `
+                <div style="margin-top: 40px; padding-top: 15px; border-top: 2px solid #ccc; text-align: center; font-size: 10px; color: #666;">
+                    <p style="margin: 5px 0;">
+                        <strong>Data da emissão:</strong> ${new Date().toLocaleDateString('pt-BR')} às ${new Date().toLocaleTimeString('pt-BR')}
+                    </p>
+                    <p style="margin: 5px 0;">
+                        Documento gerado automaticamente pelo Sistema de Metas TIM - Grupo Lemar
+                    </p>
+                </div>
+            </div>
+            `;
+            
+            // Gera PDF com o HTML formatado
             const opt = {
                 margin: 10,
                 filename: `Metas_TIM_${meses[mesAtual]}_${anoAtual}.pdf`,
@@ -777,7 +963,9 @@
                 html2canvas: { scale: 2 },
                 jsPDF: { orientation: 'portrait', unit: 'mm', format: 'a4' }
             };
-            html2pdf().set(opt).from(elemento).save();
+            html2pdf().set(opt).from(html).outputPdf('dataurlstring').then(pdfAsString => {
+                html2pdf().set(opt).from(html).save();
+            });
         }
         
         function recarregarDados() {
@@ -881,7 +1069,7 @@
             }
             
             html += '<div class="vendedores-container">';
-            html += '<input type="text" id="novoVendedor" placeholder="Digite nome do vendedor... (aperte ENTER para adicionar)" ' + (lojaEstaBlockeada && !usuarioAdmin ? 'disabled' : '') + '>';
+            html += '<input type="text" id="novoVendedor" placeholder="Digite nome do vendedor... (aperte ENTER para adicionar)" onkeypress="if(event.key===\'Enter\') adicionarVendedor(\'' + lojaId + '\')" ' + (lojaEstaBlockeada && !usuarioAdmin ? 'disabled' : '') + '>';
             html += '<button class="btn btn-primary" onclick="adicionarVendedor(' + "'" + lojaId + "'" + ')" ' + (lojaEstaBlockeada && !usuarioAdmin ? 'disabled' : '') + '>+ Adicionar</button>';
             html += '</div>';
             
@@ -892,23 +1080,41 @@
             html += '</div>';
             
             html += '<div class="table-container"><table><thead><tr>';
-            html += '<th>VENDEDOR</th><th>Aparelho (R$)</th><th>Acessórios (R$)</th><th>Pitzi</th>';
-            html += '<th>Faturamento</th><th>Upgrade</th><th>Pós</th><th>Controle</th><th>Fibra</th><th>Portabilidade</th><th>Ação</th>';
+            html += '<th>VENDEDOR</th><th>Aparelho (R$)</th><th>Acessórios (R$)</th><th>145% Acessórios</th><th>Pitzi</th>';
+            html += '<th>Faturamento (R$)</th><th>Upgrade (R$)</th><th>Pós</th><th>Controle</th><th>Fibra</th><th>Portabilidade</th><th>Ação</th>';
             html += '</tr></thead><tbody>';
             
             vendedores.forEach((vend, idx) => {
                 html += '<tr>';
                 html += '<td><strong>' + vend + '</strong></td>';
-                for (let i = 0; i < 9; i++) {
-                    const valor = dados[idx] ? dados[idx][i] || '' : '';
-                    const disabled = lojaEstaBlockeada && !usuarioAdmin ? 'disabled' : '';
-                    html += '<td><input type="number" value="' + valor + '" onchange="salvarLoja(' + "'" + lojaId + "'" + ')" step="0.01" ' + disabled + ' style="' + (disabled ? 'background: #f0f0f0; color: #999;' : '') + '"></td>';
+                // Aparelho (R$) - coluna 0
+                let valor0 = dados[idx] ? dados[idx][0] || '' : '';
+                html += '<td><input type="number" value="' + valor0 + '" id="cell_' + idx + '_0" onchange="salvarLoja(' + "'" + lojaId + "'" + ')" step="0.01" ' + (lojaEstaBlockeada && !usuarioAdmin ? 'disabled' : '') + ' style="' + (lojaEstaBlockeada && !usuarioAdmin ? 'background: #f0f0f0; color: #999;' : '') + '"></td>';
+                // Acessórios (R$) - coluna 1
+                let valor1 = dados[idx] ? dados[idx][1] || '' : '';
+                html += '<td><input type="number" value="' + valor1 + '" id="cell_' + idx + '_1" onchange="salvarLoja(' + "'" + lojaId + "'" + ')" step="0.01" ' + (lojaEstaBlockeada && !usuarioAdmin ? 'disabled' : '') + ' style="' + (lojaEstaBlockeada && !usuarioAdmin ? 'background: #f0f0f0; color: #999;' : '') + '"></td>';
+                // 145% Acessórios - CALCULADO AUTOMATICAMENTE (EDITÁVEL)
+                let valor145 = dados[idx] && dados[idx][1] ? (parseFloat(dados[idx][1]) * 1.45).toFixed(2) : '';
+                html += '<td><input type="number" value="' + valor145 + '" id="cell_' + idx + '_145" onchange="salvarLoja(' + "'" + lojaId + "'" + ')" step="0.01" ' + (lojaEstaBlockeada && !usuarioAdmin ? 'disabled' : '') + ' style="background: #e3f2fd; font-weight: 600; border: 2px solid #2196F3; ' + (lojaEstaBlockeada && !usuarioAdmin ? 'background: #f0f0f0; color: #999;' : '') + '"></td>';
+                // Pitzi - coluna 2
+                let valor2 = dados[idx] ? dados[idx][2] || '' : '';
+                html += '<td><input type="number" value="' + valor2 + '" id="cell_' + idx + '_2" onchange="salvarLoja(' + "'" + lojaId + "'" + ')" step="0.01" ' + (lojaEstaBlockeada && !usuarioAdmin ? 'disabled' : '') + ' style="' + (lojaEstaBlockeada && !usuarioAdmin ? 'background: #f0f0f0; color: #999;' : '') + '"></td>';
+                // Faturamento (R$) - coluna 3
+                let valor3 = dados[idx] ? dados[idx][3] || '' : '';
+                html += '<td><input type="number" value="' + valor3 + '" id="cell_' + idx + '_3" onchange="salvarLoja(' + "'" + lojaId + "'" + ')" step="0.01" ' + (lojaEstaBlockeada && !usuarioAdmin ? 'disabled' : '') + ' style="' + (lojaEstaBlockeada && !usuarioAdmin ? 'background: #f0f0f0; color: #999;' : '') + '"></td>';
+                // Upgrade (R$) - coluna 4
+                let valor4 = dados[idx] ? dados[idx][4] || '' : '';
+                html += '<td><input type="number" value="' + valor4 + '" id="cell_' + idx + '_4" onchange="salvarLoja(' + "'" + lojaId + "'" + ')" step="0.01" ' + (lojaEstaBlockeada && !usuarioAdmin ? 'disabled' : '') + ' style="' + (lojaEstaBlockeada && !usuarioAdmin ? 'background: #f0f0f0; color: #999;' : '') + '"></td>';
+                // Pós, Controle, Fibra, Portabilidade
+                for (let i = 5; i < 9; i++) {
+                    let valor = dados[idx] ? dados[idx][i] || '' : '';
+                    html += '<td><input type="number" value="' + valor + '" id="cell_' + idx + '_' + i + '" onchange="salvarLoja(' + "'" + lojaId + "'" + ')" step="0.01" ' + (lojaEstaBlockeada && !usuarioAdmin ? 'disabled' : '') + ' style="' + (lojaEstaBlockeada && !usuarioAdmin ? 'background: #f0f0f0; color: #999;' : '') + '"></td>';
                 }
                 html += '<td style="text-align: center;"><button onclick="copiarMetaParaOutros(' + "'" + lojaId + "'" + ',' + idx + ')" ' + (lojaEstaBlockeada && !usuarioAdmin ? 'disabled' : '') + ' style="padding: 4px 8px; background: #FF9800; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 11px; font-weight: 600;">📋 Copiar</button></td>';
                 html += '</tr>';
             });
             
-            // Adicionar linha LOJA TOTAL (EDITÁVEL)
+            // Adicionar linha LOJA TOTAL (COM SOMA AUTOMÁTICA + EDITÁVEL)
             if (vendedores.length > 0) {
                 const chaveLojaTotalDados = getChaveComMes('lojaTotal_' + lojaId);
                 let dadosLojaTotal = JSON.parse(localStorage.getItem(chaveLojaTotalDados) || '[]');
@@ -920,10 +1126,27 @@
                 
                 html += '<tr class="loja-total">';
                 html += '<td><strong>LOJA TOTAL</strong></td>';
-                for (let i = 0; i < 9; i++) {
-                    const valor = dadosLojaTotal[i] || '';
-                    const disabled = lojaEstaBlockeada && !usuarioAdmin ? 'disabled' : '';
-                    html += '<td><input type="number" value="' + valor + '" onchange="salvarLoja(' + "'" + lojaId + "'" + ')" step="0.01" ' + disabled + ' style="font-weight: 600; ' + (disabled ? 'background: #f0f0f0; color: #999;' : '') + '"></td>';
+                // Aparelho (soma automática)
+                let somaAparelho = 0;
+                for (let i = 0; i < vendedores.length; i++) {
+                    somaAparelho += parseFloat(dados[i]?.[0] || 0);
+                }
+                html += '<td><input type="number" value="' + (dadosLojaTotal[0] || somaAparelho || 0) + '" id="loja_total_0" onchange="salvarLoja(' + "'" + lojaId + "'" + ')" step="0.01" ' + (lojaEstaBlockeada && !usuarioAdmin ? 'disabled' : '') + ' style="font-weight: 600; background: #fff3e0; border: 2px solid #FF9800; ' + (lojaEstaBlockeada && !usuarioAdmin ? 'background: #f0f0f0; color: #999;' : '') + '"></td>';
+                // Acessórios (soma automática)
+                let somaAcessorios = 0;
+                for (let i = 0; i < vendedores.length; i++) {
+                    somaAcessorios += parseFloat(dados[i]?.[1] || 0);
+                }
+                html += '<td><input type="number" value="' + (dadosLojaTotal[1] || somaAcessorios || 0) + '" id="loja_total_1" onchange="salvarLoja(' + "'" + lojaId + "'" + ')" step="0.01" ' + (lojaEstaBlockeada && !usuarioAdmin ? 'disabled' : '') + ' style="font-weight: 600; background: #fff3e0; border: 2px solid #FF9800; ' + (lojaEstaBlockeada && !usuarioAdmin ? 'background: #f0f0f0; color: #999;' : '') + '"></td>';
+                // Coluna 145% (NÃO entra no Loja Total - apenas para referência dos vendedores)
+                html += '<td style="background: #e3f2fd; border: 2px solid #2196F3; font-weight: 600; padding: 8px; text-align: center;">-</td>';
+                // Restante dos campos (soma automática)
+                for (let col = 2; col < 9; col++) {
+                    let soma = 0;
+                    for (let i = 0; i < vendedores.length; i++) {
+                        soma += parseFloat(dados[i]?.[col] || 0);
+                    }
+                    html += '<td><input type="number" value="' + (dadosLojaTotal[col] || soma || 0) + '" id="loja_total_' + col + '" onchange="salvarLoja(' + "'" + lojaId + "'" + ')" step="0.01" ' + (lojaEstaBlockeada && !usuarioAdmin ? 'disabled' : '') + ' style="font-weight: 600; background: #fff3e0; border: 2px solid #FF9800; ' + (lojaEstaBlockeada && !usuarioAdmin ? 'background: #f0f0f0; color: #999;' : '') + '"></td>';
                 }
                 html += '<td></td>'; // Coluna Ação vazia
                 html += '</tr>';
@@ -1016,11 +1239,24 @@
             localStorage.setItem(chave, JSON.stringify(vendedores));
             input.value = '';
             renderizarLoja(lojaId);
+            input.focus(); // ← Volta focus pro campo para próximo vendedor
             
             // Atualizar todas as carteiras
             Object.keys(carteiraLojas).forEach(cartId => renderizarCarteira(cartId));
         }
 
+        // FUNÇÃO: Formatar valor em R$
+        function formatarR$(valor) {
+            if (!valor || valor === '' || valor === '0') return valor;
+            return 'R$ ' + parseFloat(valor).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+        }
+        
+        // FUNÇÃO: Calcular 145% de um valor
+        function calcular145porcento(valor) {
+            if (!valor || valor === '' || valor === '0') return '0';
+            return (parseFloat(valor) * 1.45).toFixed(2);
+        }
+        
         function removerVendedor(lojaId, idx) {
             const chaveVendedores = getChaveComMes('vendedores_' + lojaId);
             const chaveDados = getChaveComMes('tabelaDados_' + lojaId);
