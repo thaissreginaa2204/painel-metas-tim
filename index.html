@@ -1690,10 +1690,7 @@
             if (firebaseDB) {
                 setInterval(() => {
                     console.log('🔄 Sincronizando com Firebase...');
-                    salvarNoFirebase('sincronizacao', { 
-                        ultimaSincronizacao: new Date().toISOString(),
-                        pc: navigator.userAgent.includes('Windows') ? 'Windows' : 'Online'
-                    });
+                    // Sincronização automática via interceptores já configurada
                 }, 30000); // A cada 30 segundos
             }
         });
