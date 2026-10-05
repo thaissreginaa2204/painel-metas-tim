@@ -1511,7 +1511,12 @@
             if (container) container.innerHTML = html;
         }
 
-        // ========== FIREBASE INTEGRATION ==========
+        // ========== FIREBASE INTEGRATION (SYNC GLOBAL v4) ==========
+        // Tudo que o painel grava no localStorage (metas, vendedores, tabelas,
+        // loja total e BLOQUEIOS) é espelhado automaticamente no Firebase.
+        // Um listener em tempo real traz de volta as mudanças feitas em
+        // qualquer outro navegador/PC. O perfil (ADMIN/GERENTE) continua
+        // local, por aparelho.
         const firebaseConfig = {
             apiKey: "AIzaSyACCyEePKkcHK31QyiRvXZMhMc6ehrkxbI",
             authDomain: "painel-metas-tim-v1.firebaseapp.com",
@@ -1522,177 +1527,245 @@
             databaseURL: "https://painel-metas-tim-v1-default-rtdb.firebaseio.com"
         };
 
+        const FB_RAIZ = 'dados';
+        const PREFIXOS_SYNC = ['metas_', 'vendedores_', 'tabelaDados_', 'lojaTotal_', 'bloqueio_'];
+        const pcId = 'PC' + Math.random().toString(36).substr(2, 9);
         let firebaseDB = null;
-        let pcId = 'PC' + Math.random().toString(36).substr(2, 9); // ID único do PC
+        let fbPronto = false;          // primeiro snapshot já chegou?
+        let fbAplicandoRemoto = false; // evita eco (remoto -> local -> remoto)
 
-        try {
-            firebase.initializeApp(firebaseConfig);
-            firebaseDB = firebase.database();
-            console.log('✅ Firebase inicializado com sucesso - PC:', pcId);
-        } catch(e) {
-            console.log('⚠️ Firebase não inicializado (teste offline)', e.message);
+        const _setItem = Storage.prototype.setItem;
+        const _removeItem = Storage.prototype.removeItem;
+
+        function deveSincronizar(chave) {
+            return typeof chave === 'string' && PREFIXOS_SYNC.some(p => chave.startsWith(p));
         }
-
-        // FUNÇÃO: normalizar chaves para Firebase (remover : e .)
         function normalizarChave(chave) {
-            return chave.replace(/[\.:]/g, '_');
+            return chave.replace(/[.#$\[\]\/:]/g, '_');
         }
 
-        // FUNÇÃO: salvar NO localStorage E Firebase
-        function salvarLocalEFirebase(chaveLocal, dados) {
-            // Salva no localStorage
-            localStorage.setItem(chaveLocal, JSON.stringify(dados));
-            
-            // Salva no Firebase com chave normalizada
-            if (firebaseDB) {
-                const chaveFB = normalizarChave(chaveLocal);
-                try {
-                    firebaseDB.ref('dados/' + chaveFB).set({
-                        valor: dados,
-                        atualizadoEm: new Date().toISOString(),
-                        atualizadoPor: pcId
-                    }).catch(err => console.log('⚠️ Firebase:', err.message));
-                } catch(e) {
-                    console.log('⚠️ Firebase offline');
-                }
+        // ---- indicador visual de status ----
+        function statusFirebase(texto, cor) {
+            let el = document.getElementById('fbStatus');
+            if (!el) {
+                el = document.createElement('div');
+                el.id = 'fbStatus';
+                el.style.cssText = 'position:fixed;bottom:10px;right:10px;z-index:9999;padding:6px 12px;border-radius:20px;font:600 12px Arial,sans-serif;color:#fff;box-shadow:0 2px 6px rgba(0,0,0,.25);';
+                document.body.appendChild(el);
             }
+            el.textContent = texto;
+            el.style.background = cor;
         }
 
-        // FUNÇÃO: carregar do Firebase e sincronizar (retorna Promise)
-        function carregarDoFirebase(chaveLocal) {
-            return new Promise((resolve) => {
-                if (!firebaseDB) {
-                    resolve();
-                    return;
-                }
-                const chaveFB = normalizarChave(chaveLocal);
-                try {
-                    firebaseDB.ref('dados/' + chaveFB).once('value', snapshot => {
-                        const obj = snapshot.val();
-                        if (obj && obj.valor) {
-                            localStorage.setItem(chaveLocal, JSON.stringify(obj.valor));
-                            console.log('✅ Sincronizado do Firebase:', chaveLocal);
-                        }
-                        resolve();
-                    }).catch(err => {
-                        console.log('⚠️ Erro Firebase:', err.message);
-                        resolve();
-                    });
-                } catch(e) {
-                    console.log('⚠️ Firebase offline');
-                    resolve();
+        // ---- espelhamento local -> Firebase ----
+        function enviarParaFirebase(chave, valorTexto) {
+            if (!firebaseDB) return;
+            firebaseDB.ref(FB_RAIZ + '/' + normalizarChave(chave)).set({
+                chave: chave,
+                json: valorTexto,
+                atualizadoEm: new Date().toISOString(),
+                atualizadoPor: pcId
+            }).catch(err => {
+                console.error('❌ Firebase (gravar):', err.message);
+                statusFirebase('⚠️ Erro ao salvar na nuvem', '#c62828');
+                if (String(err.message).toLowerCase().includes('permission')) {
+                    alert('⚠️ O Firebase recusou a gravação (permission denied).\n\nVerifique as regras do Realtime Database no Console do Firebase.');
                 }
             });
         }
+        function removerDoFirebase(chave) {
+            if (!firebaseDB) return;
+            firebaseDB.ref(FB_RAIZ + '/' + normalizarChave(chave)).remove()
+                .catch(err => console.error('❌ Firebase (remover):', err.message));
+        }
 
-        // Interceptar salvarCarteira
-        const originalSalvarCarteira = window.salvarCarteira;
-        window.salvarCarteira = function(nomeCarteira) {
-            const resultado = originalSalvarCarteira.call(this, nomeCarteira);
-            const chave = getChaveComMes('metas_' + nomeCarteira);
-            const dados = JSON.parse(localStorage.getItem(chave) || '{}');
-            salvarLocalEFirebase(chave, dados);
-            return resultado;
+        Storage.prototype.setItem = function(chave, valor) {
+            _setItem.call(this, chave, valor);
+            if (this === window.localStorage && !fbAplicandoRemoto && deveSincronizar(chave)) {
+                enviarParaFirebase(chave, String(valor));
+            }
+        };
+        Storage.prototype.removeItem = function(chave) {
+            _removeItem.call(this, chave);
+            if (this === window.localStorage && !fbAplicandoRemoto && deveSincronizar(chave)) {
+                removerDoFirebase(chave);
+            }
         };
 
-        // Interceptar salvarLoja
-        const originalSalvarLoja = window.salvarLoja;
-        window.salvarLoja = function(lojaId) {
-            const resultado = originalSalvarLoja.call(this, lojaId);
-            const chaveDados = getChaveComMes('tabelaDados_' + lojaId);
-            const chaveVendedores = getChaveComMes('vendedores_' + lojaId);
-            const chaveLojaTotalDados = getChaveComMes('lojaTotal_' + lojaId);
-            
-            const dados = JSON.parse(localStorage.getItem(chaveDados) || '[]');
-            const vendedores = JSON.parse(localStorage.getItem(chaveVendedores) || '[]');
-            const lojaTotal = JSON.parse(localStorage.getItem(chaveLojaTotalDados) || '[]');
-            
-            salvarLocalEFirebase(chaveDados, dados);
-            salvarLocalEFirebase(chaveVendedores, vendedores);
-            salvarLocalEFirebase(chaveLojaTotalDados, lojaTotal);
-            return resultado;
-        };
+        // ---- Firebase -> local ----
+        function textoDoNo(no) {
+            if (!no) return null;
+            if (typeof no.json === 'string') return no.json;          // formato novo
+            if (no.valor !== undefined) return JSON.stringify(no.valor); // formato antigo
+            return null;
+        }
+        function aplicarRemoto(chaveFB, no) {
+            const chave = (no && no.chave) || chaveFB;
+            fbAplicandoRemoto = true;
+            try {
+                if (no === null) {
+                    localStorage.removeItem(chave);
+                } else {
+                    const texto = textoDoNo(no);
+                    if (texto !== null) localStorage.setItem(chave, texto);
+                }
+            } finally {
+                fbAplicandoRemoto = false;
+            }
+        }
 
-        // Interceptar salvarFranquia
-        const originalSalvarFranquia = window.salvarFranquia;
-        window.salvarFranquia = function() {
-            const resultado = originalSalvarFranquia.call(this);
-            const chave = getChaveComMes('metas_franquia');
-            const dados = JSON.parse(localStorage.getItem(chave) || '{}');
-            salvarLocalEFirebase(chave, dados);
-            return resultado;
-        };
+        // ---- atualizar a tela quando algo muda em outro navegador ----
+        let timerTela = null;
+        function agendarAtualizacaoTela() {
+            clearTimeout(timerTela);
+            timerTela = setTimeout(() => {
+                const ativo = document.activeElement;
+                // Não atrapalhar quem está digitando: espera sair do campo
+                if (ativo && ativo.tagName === 'INPUT' && ativo.type !== 'password') {
+                    ativo.addEventListener('blur', agendarAtualizacaoTela, { once: true });
+                    return;
+                }
+                atualizarTelaSincronizada();
+            }, 300);
+        }
 
-        // Interceptar adicionarVendedor
-        const originalAdicionarVendedor = window.adicionarVendedor;
-        window.adicionarVendedor = function(lojaId) {
-            const resultado = originalAdicionarVendedor.call(this, lojaId);
-            const chave = getChaveComMes('vendedores_' + lojaId);
-            const dados = JSON.parse(localStorage.getItem(chave) || '[]');
-            salvarLocalEFirebase(chave, dados);
-            return resultado;
-        };
-        
+        function ajustarSecao(idWrapper, idResumo, idBotao, bloqueado, renderResumo) {
+            const wrapper = document.getElementById(idWrapper);
+            const resumo = document.getElementById(idResumo);
+            const botao = document.getElementById(idBotao);
+            if (!wrapper || !resumo) return;
+            if (bloqueado) {
+                renderResumo();
+                wrapper.style.display = 'none';
+                resumo.style.display = 'grid';
+            } else if (wrapper.style.display === 'none' && !usuarioAdmin) {
+                // Admin desbloqueou em outro navegador -> gerente volta a editar
+                wrapper.style.display = 'block';
+                resumo.style.display = 'none';
+                if (botao) botao.style.display = 'none';
+            }
+        }
+
+        function atualizarTelaSincronizada() {
+            if (document.getElementById('telaPrincipal').style.display === 'none') return;
+            recarregarDados();
+            [1, 2, 3].forEach(n => {
+                const id = 'carteira_0' + n;
+                ajustarSecao('wrapper-cart0' + n, 'resumo-' + id, 'btnVerResumo-cart0' + n,
+                    verificarBloqueioCarteira(n), () => renderizarResumoCarteira(id));
+            });
+            ajustarSecao('wrapper-franquia', 'resumo-franquia', 'btnVerResumo-franquia',
+                verificarBloqueioFranquia(), renderizarResumoFranquia);
+            const sel = document.getElementById('selectorLoja');
+            if (sel && sel.value) renderizarLoja(sel.value);
+        }
+
+        // ---- inicialização ----
+        function iniciarFirebase() {
+            return new Promise(resolve => {
+                try {
+                    firebase.initializeApp(firebaseConfig);
+                    firebaseDB = firebase.database();
+                } catch (e) {
+                    console.warn('⚠️ Firebase indisponível, usando só este navegador:', e.message);
+                    statusFirebase('⚠️ Offline (só este navegador)', '#ef6c00');
+                    resolve();
+                    return;
+                }
+
+                firebaseDB.ref('.info/connected').on('value', s => {
+                    if (!fbPronto) return;
+                    if (s.val()) statusFirebase('🟢 Sincronizado', '#2e7d32');
+                    else statusFirebase('🔴 Sem conexão — salvando localmente', '#c62828');
+                });
+
+                statusFirebase('🔄 Carregando da nuvem...', '#1565c0');
+                const ref = firebaseDB.ref(FB_RAIZ);
+                const timeout = setTimeout(() => {
+                    if (!fbPronto) {
+                        statusFirebase('⚠️ Nuvem lenta — mostrando dados locais', '#ef6c00');
+                        resolve();
+                    }
+                }, 8000);
+
+                ref.once('value').then(snap => {
+                    const remoto = snap.val() || {};
+                    const chavesRemotas = new Set();
+                    Object.keys(remoto).forEach(k => {
+                        chavesRemotas.add((remoto[k] && remoto[k].chave) || k);
+                        aplicarRemoto(k, remoto[k]);
+                    });
+
+                    // Migração: dados que só existem neste navegador sobem para a nuvem.
+                    // Bloqueios NÃO sobem (a nuvem manda): evita "re-bloquear" algo
+                    // que o ADMIN já desbloqueou em outro lugar.
+                    for (let i = localStorage.length - 1; i >= 0; i--) {
+                        const k = localStorage.key(i);
+                        if (!deveSincronizar(k) || chavesRemotas.has(k)) continue;
+                        if (k.startsWith('bloqueio_')) {
+                            fbAplicandoRemoto = true;
+                            localStorage.removeItem(k);
+                            fbAplicandoRemoto = false;
+                        } else {
+                            enviarParaFirebase(k, localStorage.getItem(k));
+                        }
+                    }
+
+                    fbPronto = true;
+                    clearTimeout(timeout);
+                    statusFirebase('🟢 Sincronizado', '#2e7d32');
+
+                    // Tempo real: mudanças vindas de outros navegadores
+                    const ignorarProprio = no => no && no.atualizadoPor === pcId;
+                    ref.on('child_added', s => {
+                        const k = (s.val() && s.val().chave) || s.key;
+                        // o Firebase dispara child_added 1x para cada item já carregado: ignora esse 1º disparo
+                        if (chavesRemotas.has(k)) { chavesRemotas.delete(k); return; }
+                        if (ignorarProprio(s.val())) return;
+                        aplicarRemoto(s.key, s.val()); agendarAtualizacaoTela();
+                    });
+                    ref.on('child_changed', s => {
+                        if (ignorarProprio(s.val())) return;
+                        aplicarRemoto(s.key, s.val()); agendarAtualizacaoTela();
+                    });
+                    ref.on('child_removed', s => {
+                        const no = s.val();
+                        fbAplicandoRemoto = true;
+                        localStorage.removeItem((no && no.chave) || s.key);
+                        fbAplicandoRemoto = false;
+                        agendarAtualizacaoTela();
+                    });
+                    resolve();
+                }).catch(err => {
+                    clearTimeout(timeout);
+                    console.error('❌ Firebase (ler):', err.message);
+                    statusFirebase('⚠️ Sem acesso à nuvem — veja o console', '#c62828');
+                    resolve();
+                });
+            });
+        }
         // ========== FIM FIREBASE ==========
 
-        window.addEventListener('load', () => {
-            // Verificar se tem acesso salvo
+        window.addEventListener('load', async () => {
+            // 1º: puxa tudo da nuvem (inclusive bloqueios) ANTES de montar a tela
+            await iniciarFirebase();
+
             if (!verificarNivelAcesso()) {
-                // Mostrar tela de login
                 document.getElementById('telaLogin').style.display = 'flex';
                 document.getElementById('telaPrincipal').style.display = 'none';
                 return;
             }
-            
-            // Tem acesso: mostrar painel
+
             exibirPainelPrincipal();
-            
             preencherSeletorAno();
-            
-            // Atualizar selectores com valores atuais
+
             const selectMes = document.getElementById('seletorMes');
             const selectAno = document.getElementById('seletorAno');
             if (selectMes) selectMes.value = mesAtual;
             if (selectAno) selectAno.value = anoAtual;
-            
+
             atualizarMesAnoDisplay();
-            
-            // Carregar dados do Firebase (sincronizar entre PCs)
-            if (firebaseDB) {
-                console.log('🔄 Carregando dados do Firebase...');
-                const promessas = [];
-                
-                // Carteiras
-                for (let i = 1; i <= 3; i++) {
-                    const chave = getChaveComMes('metas_carteira_0' + i);
-                    promessas.push(carregarDoFirebase(chave));
-                }
-                // Lojas
-                for (let i = 1; i <= 22; i++) {
-                    const lojaId = 'loja_' + String(i).padStart(2, '0');
-                    promessas.push(carregarDoFirebase(getChaveComMes('vendedores_' + lojaId)));
-                    promessas.push(carregarDoFirebase(getChaveComMes('tabelaDados_' + lojaId)));
-                    promessas.push(carregarDoFirebase(getChaveComMes('lojaTotal_' + lojaId)));
-                }
-                // Franquia
-                promessas.push(carregarDoFirebase(getChaveComMes('metas_franquia')));
-                
-                // Aguarda TODAS as requisições terminarem
-                Promise.all(promessas).then(() => {
-                    console.log('✅ Todos os dados carregados do Firebase!');
-                    recarregarDados();
-                });
-            } else {
-                recarregarDados();
-            }
-            
-            // Sincronizar com Firebase periodicamente
-            if (firebaseDB) {
-                setInterval(() => {
-                    console.log('🔄 Sincronizando com Firebase...');
-                    // Sincronização automática via interceptores já configurada
-                }, 30000); // A cada 30 segundos
-            }
+            recarregarDados();
         });
     </script>
 </body>
